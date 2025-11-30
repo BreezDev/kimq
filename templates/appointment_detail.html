@@ -8,6 +8,7 @@
         <p><strong>Artist:</strong> {{ appt['employee_name'] }}</p>
         <p><strong>Deposit:</strong> {{ format_currency(appt['deposit_cents']) }}</p>
         <p class="muted">A confirmation email and SMS have been sent to {{ appt['client_email'] }}.</p>
+        <a class="btn ghost" href="{{ url_for('billing') }}">View billing history</a>
     </div>
 </section>
 {% endblock %}

@@ -3,7 +3,7 @@
 <section class="section">
     <h2 class="section-title">Login</h2>
     <div class="card">
-        <form method="post">
+        <form method="post" class="stacked">
             <div class="form-group">
                 <label>Email</label>
                 <input type="email" name="email" required />
@@ -14,7 +14,14 @@
             </div>
             <button class="btn" type="submit">Sign In</button>
         </form>
-        <p class="muted">Admin: kim@studio.com / adminpass<br>Employees: lena@studio.com, maya@studio.com / employeepass</p>
+        <form method="post" class="inline-form">
+            <input type="hidden" name="action" value="send_link" />
+            <input type="email" name="email" placeholder="Email" required />
+            <button class="btn ghost" type="submit">Email me a reset link</button>
+        </form>
+        <div class="muted small">Forgotten your password? We will send a fresh link so you can reset instantly.</div>
+        <div class="muted">Admin: kim@studio.com / adminpass<br>Employees: lena@studio.com, maya@studio.com / employeepass</div>
+        <div class="muted">Need an account? <a class="pill" href="{{ url_for('signup') }}">Create one</a> or <a href="{{ url_for('forgot_password') }}">reset with email</a>.</div>
     </div>
 </section>
 {% endblock %}

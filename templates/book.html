@@ -3,16 +3,17 @@
 <section class="section">
     <h2 class="section-title">Book an Appointment</h2>
     <p class="muted">Secure your date with an online deposit. Availability updates in real time.</p>
-    <div class="grid">
+    <div class="grid booking-grid">
         <div class="card">
             <form id="book-form" method="post">
                 <div class="form-group">
                     <label for="service_id">Service</label>
                     <select name="service_id" id="service_id" required>
                         {% for service in services %}
-                        <option value="{{ service['id'] }}" {% if selected_service and selected_service|int == service['id'] %}selected{% endif %}>{{ service['name'] }} — {{ format_currency(service['deposit_cents']) }} deposit</option>
+                        <option value="{{ service['id'] }}" data-deposit="{{ format_currency(service['deposit_cents']) }}" {% if selected_service and selected_service|int == service['id'] %}selected{% endif %}>{{ service['name'] }} — {{ format_currency(service['deposit_cents']) }} deposit</option>
                         {% endfor %}
                     </select>
+                    <div class="muted small" id="deposit-blurb"></div>
                 </div>
                 <div class="form-group">
                     <label for="employee_id">Artist Preference</label>
@@ -23,10 +24,14 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Select Date</label>
-                    <input type="date" name="date" id="date" required />
-                    <div class="calendar-note">Choose your date to view live availability.</div>
+                <div class="calendar-panel">
+                    <div class="calendar-header">
+                        <button type="button" class="btn ghost" id="prev-month">‹</button>
+                        <div id="calendar-month" class="calendar-month"></div>
+                        <button type="button" class="btn ghost" id="next-month">›</button>
+                    </div>
+                    <div id="calendar" class="calendar"></div>
+                    <input type="date" name="date" id="date" class="hidden" required />
                 </div>
                 <div class="form-group">
                     <label>Preferred Time</label>

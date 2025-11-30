@@ -20,7 +20,8 @@ A Flask + SQLite full-stack app for salon booking, deposits, gift cards, and cli
 
 ## Environment Variables
 - `FLASK_SECRET` – session secret.
-- `STRIPE_SECRET_KEY` – for live PaymentIntents (otherwise deposits are simulated).
+- `STRIPE_SECRET_KEY` – live PaymentIntents.
+- `STRIPE_TEST_KEY` – Stripe sandbox key for test-mode deposit captures.
 - `RESEND_API_KEY` – enable email sends.
 - `EZTEXTING_API_KEY` – enable SMS sends.
 

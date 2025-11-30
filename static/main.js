@@ -2,6 +2,80 @@ document.addEventListener('DOMContentLoaded', () => {
     const availabilityContainer = document.querySelector('#availability');
     const dateInput = document.querySelector('#date');
     const employeeSelect = document.querySelector('#employee_id');
+    const calendarEl = document.querySelector('#calendar');
+    const monthLabel = document.querySelector('#calendar-month');
+    const prevMonthBtn = document.querySelector('#prev-month');
+    const nextMonthBtn = document.querySelector('#next-month');
+    const depositBlurb = document.querySelector('#deposit-blurb');
+    const serviceSelect = document.querySelector('#service_id');
+    let currentMonth = new Date();
+
+    const syncDepositCopy = () => {
+        if (!serviceSelect || !depositBlurb) return;
+        const option = serviceSelect.selectedOptions[0];
+        if (!option) return;
+        const deposit = option.dataset.deposit;
+        depositBlurb.textContent = `Deposit due today: ${deposit} (Stripe test mode). Remaining balance is payable in studio.`;
+    };
+
+    const setDateValue = (date) => {
+        const iso = date.toISOString().split('T')[0];
+        if (dateInput) {
+            dateInput.value = iso;
+            dateInput.dispatchEvent(new Event('change'));
+        }
+        document.querySelectorAll('.day').forEach(d => d.classList.remove('selected'));
+        const match = document.querySelector(`.day[data-date="${iso}"]`);
+        if (match) match.classList.add('selected');
+    };
+
+    const renderCalendar = () => {
+        if (!calendarEl || !monthLabel) return;
+        calendarEl.innerHTML = '';
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const startDay = firstDay.getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        monthLabel.textContent = currentMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        dayNames.forEach(name => {
+            const div = document.createElement('div');
+            div.className = 'day heading';
+            div.textContent = name;
+            calendarEl.appendChild(div);
+        });
+
+        for (let i = 0; i < startDay; i++) {
+            const spacer = document.createElement('div');
+            spacer.className = 'day muted';
+            calendarEl.appendChild(spacer);
+        }
+
+        const today = new Date();
+        for (let d = 1; d <= daysInMonth; d++) {
+            const cellDate = new Date(year, month, d);
+            const iso = cellDate.toISOString().split('T')[0];
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'day';
+            button.dataset.date = iso;
+            button.textContent = d;
+            if (cellDate < new Date(today.toDateString())) {
+                button.disabled = true;
+                button.classList.add('muted');
+            }
+            button.addEventListener('click', () => setDateValue(cellDate));
+            calendarEl.appendChild(button);
+        }
+
+        if (!dateInput.value) {
+            setDateValue(today);
+        } else {
+            setDateValue(new Date(dateInput.value));
+        }
+    };
 
     const renderSlots = (data) => {
         if (!availabilityContainer) return;
@@ -55,9 +129,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (dateInput) {
         dateInput.addEventListener('change', fetchAvailability);
-        fetchAvailability();
     }
     if (employeeSelect) {
         employeeSelect.addEventListener('change', fetchAvailability);
     }
+    if (calendarEl) {
+        renderCalendar();
+        prevMonthBtn?.addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() - 1);
+            renderCalendar();
+        });
+        nextMonthBtn?.addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+            renderCalendar();
+        });
+    }
+    syncDepositCopy();
+    serviceSelect?.addEventListener('change', syncDepositCopy);
+    fetchAvailability();
 });

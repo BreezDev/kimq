@@ -46,9 +46,35 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer>
-        <div>Kim Quraish Beauty Studio · Canton, MI</div>
-        <div class="muted">Luxury bridal hair & makeup artistry</div>
+    <footer class="footer">
+        <div class="footer-grid">
+            <div>
+                <h4>Kim Quraish</h4>
+                <p>Luxury bridal hair &amp; makeup studio crafting modern, photo-perfect looks across Metro Detroit.</p>
+            </div>
+            <div>
+                <h4>Visit</h4>
+                <p>Canton, MI · On-location travel</p>
+                <p class="muted">By appointment only</p>
+            </div>
+            <div>
+                <h4>Connect</h4>
+                <p>Text/Call: <a href="tel:5550100">555-0100</a></p>
+                <p>Email: <a href="mailto:kim@studio.com">kim@studio.com</a></p>
+                <p class="muted">Follow @kimqbeauty</p>
+            </div>
+            <div>
+                <h4>Stay in the loop</h4>
+                <form>
+                    <input type="email" placeholder="Email for drops & updates" />
+                    <button class="btn ghost" type="button">Notify me</button>
+                </form>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>© {{ now().year }} Kim Quraish Beauty Studio</span>
+            <span class="muted">Bookings secured with encrypted payments.</span>
+        </div>
     </footer>
 </body>
 </html>

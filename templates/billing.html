@@ -10,7 +10,7 @@
                 <tr><th>When</th><th>Amount</th><th>Status</th><th>Type</th></tr>
                 {% for p in payments %}
                 <tr>
-                    <td>{{ p['created_at'] }}</td>
+                    <td>{{ p['created_at']|beauty_time }}</td>
                     <td>{{ format_currency(p['amount_cents']) }}</td>
                     <td>{{ p['status'] }}</td>
                     <td>{{ p['category']|replace('_', ' ')|title() }}</td>
@@ -27,7 +27,7 @@
                 {% for appt in appointments %}
                 <tr>
                     <td>{{ appt['service_name'] }}</td>
-                    <td>{{ appt['start_time'] }}</td>
+                    <td>{{ appt['start_time']|beauty_time }}</td>
                     <td>{{ appt['status'] }}</td>
                     <td>{{ format_currency(appt['amount_cents'] or 0) }}</td>
                 </tr>

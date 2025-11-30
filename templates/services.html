@@ -1,40 +1,123 @@
 {% extends 'base.html' %}
 {% block content %}
-<section class="section">
-    <h2 class="section-title">Services</h2>
-    <div class="grid">
-        {% for service in services %}
-        <div class="card">
-            {% if service['image_url'] %}
-            <div class="img-wrap"><img src="{{ service['image_url'] }}" alt="{{ service['name'] }}"></div>
-            {% endif %}
-            <h3>{{ service['name'] }}</h3>
-            <p class="muted">{{ service['description'] }}</p>
-            <div class="price">{{ format_currency(service['price_cents']) }}</div>
-            <p>Deposit: <strong>{{ format_currency(service['deposit_cents']) }}</strong></p>
-            <a class="btn" href="{{ url_for('book', service_id=service['id']) }}">Book + Pay Deposit</a>
+<section class="hero hero-subtle services-hero">
+    <div class="hero-content">
+        <p class="eyebrow">Services & Pricing</p>
+        <h1><span class="gold-accent">Boujee</span> beauty with a couture finish.</h1>
+        <p class="muted">Signature glam, bridal artistry, and red-carpet skin prep crafted in a black, white, and gold palette. Book the look, secure the date, and let the concierge finesse the rest.</p>
+        <div class="hero-actions">
+            <a class="btn" href="{{ url_for('book') }}">Reserve Your Artist</a>
+            <a class="btn ghost" href="{{ url_for('contact') }}">Text the Concierge</a>
         </div>
+    </div>
+    <div class="floating-badges">
+        <div class="badge soft">On-location or studio</div>
+        <div class="badge soft">Deposit secures your date</div>
+        <div class="badge soft">Luxury kit & prep guide</div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="section-header">
+        <div>
+            <p class="eyebrow">Signature experience</p>
+            <h2 class="section-title">Black, white, and gold indulgence</h2>
+            <p class="muted">Every appointment is styled with calming prep, luxe textures, and editorial polish—no extra fonts or colors needed.</p>
+        </div>
+        <div class="floating-card transparent">
+            <div class="gilded-rule"></div>
+            <p class="muted">Soft glam, full drama, or bridal—each look is tailored with the same boujee attention to detail.</p>
+        </div>
+    </div>
+    <div class="detail-grid">
+        <div class="detail-tile hover-lift">
+            <h3>Velvet Prep</h3>
+            <p class="muted">Cooling eye masks, skin prep, and shine control for photo-perfect wear.</p>
+        </div>
+        <div class="detail-tile hover-lift">
+            <h3>Editorial Finish</h3>
+            <p class="muted">Feathered lashes, sculpted glow, and hair detailing that holds.</p>
+        </div>
+        <div class="detail-tile hover-lift">
+            <h3>Concierge Care</h3>
+            <p class="muted">Timeline planning, on-site travel, and artist pairing handled in-house.</p>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="section-header">
+        <div>
+            <p class="eyebrow">Bookable Services</p>
+            <h2 class="section-title">Choose your glam moment</h2>
+            <p class="muted">Premium artistry with plush pacing—polished, modern, and saturated in gold detail.</p>
+        </div>
+        <div class="floating-card">
+            <p class="muted">Deposits are captured securely online. Remaining balance is payable at the studio or on-site.</p>
+            <a class="btn" href="{{ url_for('book') }}">Start a Booking</a>
+        </div>
+    </div>
+    <div class="grid luxe-grid">
+        {% for service in services %}
+        <article class="card service-card hover-lift">
+            <div class="service-media">
+                {% if service['image_url'] %}
+                <img class="service-img" src="{{ service['image_url'] }}" alt="{{ service['name'] }}" loading="lazy">
+                {% else %}
+                <div class="service-placeholder gradient-{{ loop.index0 % 3 }}">
+                    <span class="initials">{{ service['name'][:1] }}</span>
+                    <p>Inspiration coming soon</p>
+                </div>
+                {% endif %}
+                <span class="floating-pill">Deposit {{ format_currency(service['deposit_cents']) }}</span>
+            </div>
+            <div class="service-body">
+                <div class="service-top">
+                    <h3>{{ service['name'] }}</h3>
+                    <div class="price">{{ format_currency(service['price_cents']) }}</div>
+                </div>
+                <p class="muted">{{ service['description'] }}</p>
+                <div class="service-actions">
+                    <div class="pill muted">Secure your date instantly</div>
+                    <a class="btn" href="{{ url_for('book', service_id=service['id']) }}">Book + Pay Deposit</a>
+                </div>
+            </div>
+        </article>
         {% endfor %}
     </div>
 </section>
-<section class="section">
-    <h2 class="section-title">Full Price List</h2>
-    <div class="grid">
-        <div class="card">
-            <h3>Makeup Services</h3>
-            <p>Bridal Makeup – 295</p>
-            <p>Pre Wedding – 225</p>
-            <p>Engagement – 250</p>
-            <p>Bridal Trial – 195</p>
+
+<section class="section shimmering">
+    <div class="section-header">
+        <div>
+            <p class="eyebrow">Full Price List</p>
+            <h2 class="section-title">Signature menu</h2>
+            <p class="muted">Request a tailored quote for bridal parties, destination events, or custom looks.</p>
         </div>
-        <div class="card">
-            <h3>Styling Services</h3>
-            <p>Bridal Style – 325+</p>
-            <p>Pre-Wedding Events – 265+</p>
-            <p>Bridal Trial – 195</p>
-            <p>Engagement – 255+</p>
-            <p>Formal Style – 115+</p>
-            <p>Blow Dry – 45+</p>
+        <div class="floating-card transparent">
+            <p class="muted">Need guidance? Text or email the studio with your date, location, and party size—we'll craft the perfect plan.</p>
+        </div>
+    </div>
+    <div class="grid price-grid">
+        <div class="card luxe">
+            <h3>Makeup</h3>
+            <ul class="price-list">
+                <li><span>Bridal Makeup</span><strong>$295</strong></li>
+                <li><span>Pre-Wedding Makeup</span><strong>$225</strong></li>
+                <li><span>Engagement Glam</span><strong>$250</strong></li>
+                <li><span>Bridal Trial</span><strong>$195</strong></li>
+            </ul>
+        </div>
+        <div class="card luxe">
+            <h3>Hair Styling</h3>
+            <ul class="price-list">
+                <li><span>Bridal Style</span><strong>$325+</strong></li>
+                <li><span>Pre-Wedding Events</span><strong>$265+</strong></li>
+                <li><span>Bridal Trial</span><strong>$195</strong></li>
+                <li><span>Engagement</span><strong>$255+</strong></li>
+                <li><span>Formal Style</span><strong>$115+</strong></li>
+                <li><span>Blow Dry</span><strong>$45+</strong></li>
+            </ul>
         </div>
     </div>
 </section>

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="section">
+    <h2 class="section-title">My Schedule</h2>
+    <div class="card">
+        <table class="table">
+            <tr><th>Date</th><th>Client</th><th>Service</th><th>Contact</th></tr>
+            {% for appt in appointments %}
+            <tr>
+                <td>{{ appt['start_time'] }}</td>
+                <td>{{ appt['client_name'] }}</td>
+                <td>{{ appt['service_name'] }}</td>
+                <td>{{ appt['client_phone'] }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No upcoming bookings yet.</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</section>
+{% endblock %}

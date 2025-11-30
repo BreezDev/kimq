@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="section">
+    <h2 class="section-title">{{ client['name'] }}</h2>
+    <div class="grid">
+        <div class="card">
+            <p>Email: {{ client['email'] }}</p>
+            <p>Phone: {{ client['phone'] }}</p>
+            <h3>Notes</h3>
+            <ul>
+                {% for note in notes %}
+                <li>{{ note['note'] }} — <span class="muted">{{ note['author_name'] }}</span></li>
+                {% else %}
+                <li class="muted">No notes yet.</li>
+                {% endfor %}
+            </ul>
+            <form method="post" action="{{ url_for('add_client_note', client_id=client['id']) }}">
+                <div class="form-group">
+                    <label>Add Note</label>
+                    <textarea name="note" rows="3" required></textarea>
+                </div>
+                <button class="btn" type="submit">Save Note</button>
+            </form>
+        </div>
+        <div class="card">
+            <h3>Appointments</h3>
+            <ul>
+                {% for visit in visits %}
+                <li>{{ visit['service_name'] }} — {{ visit['start_time'] }}</li>
+                {% else %}
+                <li class="muted">No visits yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</section>
+{% endblock %}

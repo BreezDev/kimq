@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero">
+    <div class="logo-wrapper">
+        <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Kim Quraish logo" onerror="this.classList.add('hidden'); document.getElementById('logo-fallback').classList.remove('hidden');" />
+        <div id="logo-fallback" class="logo-fallback hidden" aria-label="Kim Quraish Beauty Studio logo">KQ</div>
+    </div>
+    <h1>Luxury Bridal Hair &amp; Makeup</h1>
+    <p>Refined, modern glam for brides and events across Metro Detroit.</p>
+    <div class="hero-actions">
+        <a class="btn" href="{{ url_for('book') }}">Book Now</a>
+        <a class="btn" href="{{ url_for('services') }}">View Services</a>
+    </div>
+</section>
+<section class="section">
+    <h2 class="section-title">Signature Experience</h2>
+    <div class="grid">
+        <div class="card">
+            <img class="placeholder" src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80" alt="Bridal" />
+            <h3>Bridal Beauty</h3>
+            <p>Timeless makeup and hair tailored to your personal style with luxury products.</p>
+        </div>
+        <div class="card">
+            <img class="placeholder" src="https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=800&q=80" alt="Team" />
+            <h3>Elite Artists</h3>
+            <p>Hand-selected artists specializing in South Asian bridal looks, red-carpet styling, and camera-ready finishes.</p>
+        </div>
+        <div class="card">
+            <img class="placeholder" src="https://images.unsplash.com/photo-1526045612212-70caf35c14df?auto=format&fit=crop&w=800&q=80" alt="Studio" />
+            <h3>On-Location or Studio</h3>
+            <p>Serving Canton, MI and beyond with seamless scheduling, deposits, and confirmations.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

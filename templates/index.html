@@ -1,58 +1,49 @@
 {% extends 'base.html' %}
 {% block content %}
-<section class="hero shimmering">
-    <div class="orbit"></div>
-    <div class="aura left"></div>
-    <div class="aura right"></div>
-    <div class="hero-grid">
-        <div>
-            <div class="eyebrow">Kim Quraish Beauty Studio</div>
-            <h1>High-fashion glam for modern brides.</h1>
-            <p>Editorial artistry, camera-ready finishes, and concierge-level care. We craft luminous looks that photograph flawlessly and feel comfortable all night.</p>
+<section class="hero minimal-hero">
+    <div class="hero-grid luxe-columns">
+        <div class="hero-panel">
+            <div class="eyebrow muted">Kim Quraish Beauty Studio</div>
+            <div class="studio-mark">KIM<br>QURAISH</div>
+            <div class="hero-meta">
+                <span>Bridal</span>
+                <span>Editorial</span>
+                <span>Soft Glam</span>
+            </div>
+            <p class="lead">Modern, photographic beauty with couture-level polish. On-location or in-studio, crafted for brides, red carpets, and every moment that deserves a lens.</p>
             <div class="hero-actions hero-cta">
                 <a class="btn" href="{{ url_for('book') }}">Book Your Date</a>
-                <a class="btn ghost" href="{{ url_for('services') }}">Explore Services</a>
-                <span class="spark-line"></span>
-                <span class="badge glow">On-location &amp; studio</span>
-            </div>
-            <div class="floating-badges">
-                <span class="badge">South Asian bridal specialists</span>
-                <span class="badge">Hair + makeup artistry</span>
-                <span class="badge">Luxury product kit</span>
+                <a class="btn ghost" href="{{ url_for('services') }}">View Services</a>
             </div>
         </div>
-        <div class="hero-bubbles">
-            <div class="card hover-lift">
-                <div class="ribbon">Signature Bridal</div>
-                <p class="muted">Reserve your glam hour with a seamless online deposit and instant confirmation.</p>
-                <div class="luxury-stats">
-                    <div class="stat">
-                        <strong>50+ hrs</strong>
-                        <span class="small muted">weekly availability</span>
-                    </div>
-                    <div class="stat">
-                        <strong>90%+</strong>
-                        <span class="small muted">clients rebook</span>
-                    </div>
-                </div>
+        <div class="hero-panel contact-stack">
+            <div class="hero-name">Kim Quraish</div>
+            <div class="muted">Luxury makeup artist &amp; bridal specialist</div>
+            <div class="contact-lines">
+                <span>Detroit · Canton · Travel worldwide</span>
+                <span>Studio + On-location glam</span>
+                <a href="mailto:kim@studio.com">kim@studio.com</a>
+                <a href="tel:5550100">+1 (555) 010-0</a>
+                <a href="{{ url_for('services') }}">Portfolio</a>
             </div>
-            <div class="floating-card hover-lift transparent">
-                <div class="floating-pill accent">Detroit · Canton · Travel</div>
-                <div class="gilded-rule"></div>
-                <p class="muted">Minimal glam to full bridal transformations with artists who listen and deliver.</p>
+            <div class="divider"></div>
+            <div class="hero-actions tight">
+                <a class="link-underline" href="{{ url_for('book') }}">Start a project</a>
+                <a class="link-underline" href="{{ url_for('services') }}">See the work</a>
             </div>
+            <div class="small muted">Appointments by reservation only. Luxe, minimal, contemporary.</div>
         </div>
     </div>
 </section>
 
-<section class="section full">
+<section class="section full calm-panel">
     <div class="section-header">
         <div>
-            <p class="eyebrow">Signature Looks</p>
+            <p class="eyebrow muted">Signature Looks</p>
             <h2 class="section-title">Effortless luxury, tailored to you</h2>
-            <p class="section-subtitle">From soft glam to bold bridal statements, every appointment includes skin prep, custom lashes, and hair finishing so you step into the spotlight feeling unstoppable.</p>
+            <p class="section-subtitle muted">From soft glam to bold bridal statements, every appointment includes skin prep, custom lashes, and hair finishing so you step into the spotlight feeling unstoppable.</p>
         </div>
-        <div class="booking-highlight">
+        <div class="booking-highlight minimal-card">
             <strong>Ready to book?</strong>
             <div class="muted small">Choose your service, pick your artist, and lock in your time with a secure deposit—under 60 seconds.</div>
             <div class="hero-actions" style="margin-top:12px;">
@@ -61,17 +52,17 @@
         </div>
     </div>
     <div class="grid signature-grid">
-        <div class="signature-card hover-lift">
+        <div class="signature-card hover-lift minimal-card">
             <div class="floating-pill subtle">Bridal Hair &amp; Makeup</div>
             <h3>Timeless bridal glam</h3>
             <p>Polished skin, sculpted eyes, and hair that holds all night—designed for your vision and your veil.</p>
         </div>
-        <div class="signature-card hover-lift">
+        <div class="signature-card hover-lift minimal-card">
             <div class="floating-pill subtle">Editorial &amp; Events</div>
             <h3>Red-carpet energy</h3>
             <p>Runway-inspired touches, luxury textures, and photo-ready shine for galas, shoots, or black-tie events.</p>
         </div>
-        <div class="signature-card hover-lift">
+        <div class="signature-card hover-lift minimal-card">
             <div class="floating-pill subtle">South Asian Specialists</div>
             <h3>Detail-driven artistry</h3>
             <p>Dupatta placement, jewelry setting, and statement eyes by artists fluent in cultural glam.</p>
@@ -82,22 +73,22 @@
 <section class="section">
     <div class="section-header">
         <div>
-            <p class="eyebrow">Aesthetic, animated, unforgettable</p>
+            <p class="eyebrow muted">Aesthetic, refined, unforgettable</p>
             <h2 class="section-title">The Kim Q experience</h2>
         </div>
     </div>
     <div class="experience-grid">
-        <div class="experience-card hover-lift">
+        <div class="experience-card hover-lift minimal-card">
             <div class="accent-bar"></div>
             <h3>Concierge booking</h3>
             <p>Live availability, smooth deposits, and instant SMS/email confirmations keep you in the loop.</p>
         </div>
-        <div class="experience-card hover-lift">
+        <div class="experience-card hover-lift minimal-card">
             <div class="accent-bar"></div>
             <h3>Luxury-grade kit</h3>
             <p>Charlotte Tilbury, Dior, NARS, and pro-only airbrush options for a finish that lasts through every toast.</p>
         </div>
-        <div class="experience-card hover-lift">
+        <div class="experience-card hover-lift minimal-card">
             <div class="accent-bar"></div>
             <h3>Artist match</h3>
             <p>Hand-select your artist or let us pair you based on style. We travel across Metro Detroit and beyond.</p>
@@ -108,21 +99,21 @@
 <section class="section">
     <div class="section-header">
         <div>
-            <p class="eyebrow">Book in three moves</p>
+            <p class="eyebrow muted">Book in three moves</p>
             <h2 class="section-title">Dream look, confirmed</h2>
-            <p class="section-subtitle">Pick your service, select a time, add notes for your inspo photos, and submit. We'll handle the reminders and arrival details.</p>
+            <p class="section-subtitle muted">Pick your service, select a time, add notes for your inspo photos, and submit. We'll handle the reminders and arrival details.</p>
         </div>
     </div>
     <div class="grid">
-        <div class="card hover-lift">
+        <div class="card hover-lift minimal-card">
             <h3>1. Choose your service</h3>
             <p class="muted">Bridal, pre-event glam, and group bookings available. Deposits secure your spot instantly.</p>
         </div>
-        <div class="card hover-lift">
+        <div class="card hover-lift minimal-card">
             <h3>2. Pick a time</h3>
             <p class="muted">See live availability in elegant 12-hour slots like 9:00 AM or 9:30 AM. Tap to auto-fill your booking form.</p>
         </div>
-        <div class="card hover-lift">
+        <div class="card hover-lift minimal-card">
             <h3>3. Arrive and glow</h3>
             <p class="muted">Your artist arrives prepped with a bespoke kit. Expect timeline coordination, touch-up tips, and luxe finishing.</p>
         </div>

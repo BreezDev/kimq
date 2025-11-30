@@ -334,6 +334,17 @@ def format_currency(cents: int) -> str:
     return f"${cents / 100:,.2f}"
 
 
+@app.template_filter("beauty_time")
+def beauty_time(value: str | None):
+    if not value:
+        return ""
+    try:
+        dt = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return value
+    return dt.strftime("%b %d, %I:%M %p")
+
+
 def require_role(role_name):
     user = current_user()
     return user and user["role"] == role_name
@@ -1034,7 +1045,10 @@ def api_availability():
             {
                 "employee_id": emp["id"],
                 "employee_name": emp["name"],
-                "slots": [s.strftime("%H:%M") for s in slots],
+                "slots": [
+                    {"value": s.strftime("%H:%M"), "label": s.strftime("%I:%M %p")}
+                    for s in slots
+                ],
             }
         )
     conn.close()
@@ -1043,7 +1057,7 @@ def api_availability():
 
 @app.context_processor
 def inject_user():
-    return {"current_user": current_user()}
+    return {"current_user": current_user(), "now": datetime.now}
 
 
 init_db()

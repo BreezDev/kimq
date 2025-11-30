@@ -12,6 +12,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const serviceSelect = document.querySelector('#service_id');
     let currentMonth = new Date();
 
+    const formatTimeLabel = (timeValue) => {
+        const [hourStr, minute] = timeValue.split(':');
+        let hour = parseInt(hourStr, 10);
+        const suffix = hour >= 12 ? 'PM' : 'AM';
+        hour = hour % 12 || 12;
+        return `${hour}:${minute} ${suffix}`;
+    };
+
     const syncDepositCopy = () => {
         if (!serviceSelect || !depositBlurb) return;
         const option = serviceSelect.selectedOptions[0];
@@ -96,13 +104,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const list = document.createElement('div');
                 list.className = 'flex';
                 block.slots.forEach(slot => {
+                    const value = typeof slot === 'string' ? slot : slot.value;
+                    const label = typeof slot === 'string' ? formatTimeLabel(slot) : (slot.label || formatTimeLabel(slot.value));
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'btn';
-                    btn.textContent = slot;
+                    btn.textContent = label;
                     btn.addEventListener('click', () => {
                         const timeInput = document.querySelector('#time');
-                        timeInput.value = slot;
+                        timeInput.value = value;
                         employeeSelect.value = block.employee_id;
                         document.querySelector('#book-form').scrollIntoView({ behavior: 'smooth' });
                     });

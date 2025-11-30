@@ -4,7 +4,7 @@
     <h2 class="section-title">Appointment Confirmed</h2>
     <div class="card">
         <p><strong>Service:</strong> {{ appt['service_name'] }}</p>
-        <p><strong>Date:</strong> {{ appt['start_time'] }}</p>
+        <p><strong>Date:</strong> {{ appt['start_time']|beauty_time }}</p>
         <p><strong>Artist:</strong> {{ appt['employee_name'] }}</p>
         <p><strong>Deposit:</strong> {{ format_currency(appt['deposit_cents']) }}</p>
         <p class="muted">A confirmation email and SMS have been sent to {{ appt['client_email'] }}.</p>

@@ -7,7 +7,7 @@
             <tr><th>Date</th><th>Client</th><th>Service</th><th>Contact</th></tr>
             {% for appt in appointments %}
             <tr>
-                <td>{{ appt['start_time'] }}</td>
+                <td>{{ appt['start_time']|beauty_time }}</td>
                 <td>{{ appt['client_name'] }}</td>
                 <td>{{ appt['service_name'] }}</td>
                 <td>{{ appt['client_phone'] }}</td>

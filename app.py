@@ -26,6 +26,7 @@ def get_db():
 def init_db():
     conn = get_db()
     cur = conn.cursor()
+    cur.execute("PRAGMA foreign_keys = ON;")
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -59,6 +60,7 @@ def init_db():
             description TEXT,
             price_cents INTEGER NOT NULL,
             deposit_cents INTEGER NOT NULL,
+            image_url TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
         """
@@ -161,6 +163,22 @@ def init_db():
         );
         """
     )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS password_resets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            token TEXT UNIQUE NOT NULL,
+            expires_at TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        """
+    )
+    try:
+        cur.execute("ALTER TABLE services ADD COLUMN image_url TEXT")
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     seed_users(conn)
     seed_services(conn)
@@ -216,21 +234,81 @@ def seed_services(conn):
     if existing:
         return
     services = [
-        ("Bridal Makeup", "Signature bridal glam tailored to your look.", 29500, 10000),
-        ("Pre Wedding", "Polished look for pre-wedding celebrations.", 22500, 9000),
-        ("Engagement", "Camera-ready engagement makeup.", 25000, 10000),
-        ("Bridal Trial", "Test drive your wedding-day glam.", 19500, 7500),
-        ("Bridal Style", "Luxurious bridal hair styling.", 32500, 12000),
-        ("Pre-Wedding Events", "Event-perfect styling for festivities.", 26500, 10000),
-        ("Bridal Trial Style", "Trial run for your bridal hairstyle.", 19500, 7500),
-        ("Engagement Style", "Romantic styling for engagement day.", 25500, 9500),
-        ("Formal Style", "Elevated formal hair styling.", 11500, 5000),
-        ("Blow Dry", "Smooth, glossy blowout.", 4500, 2000),
+        (
+            "Bridal Makeup",
+            "Signature bridal glam tailored to your look.",
+            29500,
+            10000,
+            "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1200&q=80",
+        ),
+        (
+            "Pre Wedding",
+            "Polished look for pre-wedding celebrations.",
+            22500,
+            9000,
+            "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=1200&q=80",
+        ),
+        (
+            "Engagement",
+            "Camera-ready engagement makeup.",
+            25000,
+            10000,
+            "https://images.unsplash.com/photo-1509631171560-7e2e4ba0b82b?auto=format&fit=crop&w=1200&q=80",
+        ),
+        (
+            "Bridal Trial",
+            "Test drive your wedding-day glam.",
+            19500,
+            7500,
+            "https://images.unsplash.com/photo-1511288593014-8acb33db1c83?auto=format&fit=crop&w=1200&q=80",
+        ),
+        (
+            "Bridal Style",
+            "Luxurious bridal hair styling.",
+            32500,
+            12000,
+            "https://images.unsplash.com/photo-1504208458-46c492d1571c?auto=format&fit=crop&w=1200&q=80",
+        ),
+        (
+            "Pre-Wedding Events",
+            "Event-perfect styling for festivities.",
+            26500,
+            10000,
+            "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80",
+        ),
+        (
+            "Bridal Trial Style",
+            "Trial run for your bridal hairstyle.",
+            19500,
+            7500,
+            "https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=1200&q=80",
+        ),
+        (
+            "Engagement Style",
+            "Romantic styling for engagement day.",
+            25500,
+            9500,
+            "https://images.unsplash.com/photo-1504198453319-5ce911bafcde?auto=format&fit=crop&w=1200&q=80",
+        ),
+        (
+            "Formal Style",
+            "Elevated formal hair styling.",
+            11500,
+            5000,
+            "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1200&q=80",
+        ),
+        (
+            "Blow Dry",
+            "Smooth, glossy blowout.",
+            4500,
+            2000,
+            "https://images.unsplash.com/photo-1503999422166-6dcb1cdbe1b5?auto=format&fit=crop&w=1200&q=80",
+        ),
     ]
-    for name, desc, price, deposit in services:
+    for name, desc, price, deposit, image_url in services:
         cur.execute(
-            "INSERT INTO services (name, description, price_cents, deposit_cents) VALUES (?, ?, ?, ?)",
-            (name, desc, price, deposit),
+            "INSERT INTO services (name, description, price_cents, deposit_cents, image_url) VALUES (?, ?, ?, ?, ?)",
+            (name, desc, price, deposit, image_url),
         )
     conn.commit()
 
@@ -274,7 +352,8 @@ def current_user():
 # ---------- Integration helpers ----------
 
 def create_payment_intent(amount_cents: int, description: str, customer_email: str | None = None):
-    stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+    test_key = os.environ.get("STRIPE_TEST_KEY")
+    stripe.api_key = test_key or os.environ.get("STRIPE_SECRET_KEY")
     if not stripe.api_key:
         fake_id = "pi_" + secrets.token_hex(8)
         return fake_id, "simulated"
@@ -284,6 +363,7 @@ def create_payment_intent(amount_cents: int, description: str, customer_email: s
         description=description,
         receipt_email=customer_email,
         automatic_payment_methods={"enabled": True},
+        metadata={"mode": "test" if test_key else "live"},
     )
     return intent.id, intent.status
 
@@ -307,17 +387,45 @@ def send_email(to_email: str, subject: str, body: str):
 
 
 def send_sms(to_number: str, message: str):
-    # EZTexting placeholder. Real integration would call EZTexting API.
     api_key = os.environ.get("EZTEXTING_API_KEY")
     if not api_key:
         print(f"[sms skipped] to {to_number}: {message}")
         return
     requests.post(
         "https://api.eztexting.com/v1/messaging",
-        headers={"X-API-Key": api_key},
+        headers={"X-API-Key": api_key, "Content-Type": "application/json"},
         json={"to": to_number, "message": message},
         timeout=10,
     )
+
+
+def issue_reset_token(user_id: int) -> str:
+    token = secrets.token_urlsafe(32)
+    expires_at = (datetime.utcnow() + timedelta(hours=1)).isoformat()
+    conn = get_db()
+    conn.execute("DELETE FROM password_resets WHERE user_id=?", (user_id,))
+    conn.execute(
+        "INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)",
+        (user_id, token, expires_at),
+    )
+    conn.commit()
+    conn.close()
+    return token
+
+
+def validate_reset_token(token: str):
+    if not token:
+        return None
+    now_iso = datetime.utcnow().isoformat()
+    conn = get_db()
+    row = conn.execute(
+        "SELECT pr.*, u.email, u.name FROM password_resets pr JOIN users u ON pr.user_id=u.id WHERE pr.token=?",
+        (token,),
+    ).fetchone()
+    conn.close()
+    if not row or row["expires_at"] < now_iso:
+        return None
+    return row
 
 
 def generate_gift_code() -> str:
@@ -560,11 +668,25 @@ def contact():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
+        action = request.form.get("action", "login")
         email = request.form.get("email")
-        password = request.form.get("password")
         conn = get_db()
         user = conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
         conn.close()
+        if action == "send_link":
+            if not user:
+                flash("No account found for that email.", "error")
+                return redirect(url_for("login"))
+            token = issue_reset_token(user["id"])
+            reset_link = url_for("reset_password", token=token, _external=True)
+            send_email(
+                email,
+                "Reset your Kim Quraish password",
+                f"<p>Click below to reset your password:</p><p><a href='{reset_link}'>{reset_link}</a></p>",
+            )
+            flash("Reset link sent. Check your email (and spam).", "success")
+            return redirect(url_for("login"))
+        password = request.form.get("password")
         if user and check_password_hash(user["password_hash"], password):
             session["user_id"] = user["id"]
             flash("Welcome back!", "success")
@@ -575,6 +697,49 @@ def login():
             return redirect(url_for("home"))
         flash("Invalid credentials.", "error")
     return render_template("login.html")
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email")
+        conn = get_db()
+        user = conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+        conn.close()
+        if not user:
+            flash("We couldn't find that email.", "error")
+            return redirect(url_for("forgot_password"))
+        token = issue_reset_token(user["id"])
+        reset_link = url_for("reset_password", token=token, _external=True)
+        send_email(
+            email,
+            "Reset your Kim Quraish password",
+            f"<p>Hi {user['name']},</p><p>Reset your password here: <a href='{reset_link}'>{reset_link}</a></p>",
+        )
+        flash("Password reset link sent. Please check your inbox.", "success")
+        return redirect(url_for("login"))
+    return render_template("forgot_password.html")
+
+
+@app.route("/reset/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    row = validate_reset_token(token)
+    if not row:
+        flash("Reset link is invalid or expired.", "error")
+        return redirect(url_for("login"))
+    if request.method == "POST":
+        new_password = request.form.get("password")
+        conn = get_db()
+        conn.execute(
+            "UPDATE users SET password_hash=? WHERE id=?",
+            (generate_password_hash(new_password), row["user_id"]),
+        )
+        conn.execute("DELETE FROM password_resets WHERE user_id=?", (row["user_id"],))
+        conn.commit()
+        conn.close()
+        flash("Password updated. You can log in now.", "success")
+        return redirect(url_for("login"))
+    return render_template("reset_password.html", token=token, email=row["email"])
 
 
 @app.route("/signup", methods=["GET", "POST"])
@@ -613,6 +778,32 @@ def logout():
     return redirect(url_for("home"))
 
 
+@app.route("/billing")
+def billing():
+    user = current_user()
+    if not user:
+        flash("Login to see your billing history.", "error")
+        return redirect(url_for("login"))
+    conn = get_db()
+    payments = conn.execute(
+        "SELECT * FROM payments WHERE client_email=? ORDER BY datetime(created_at) DESC",
+        (user["email"],),
+    ).fetchall()
+    appointments = conn.execute(
+        """
+        SELECT a.*, s.name as service_name
+        FROM appointments a
+        LEFT JOIN services s ON a.service_id=s.id
+        LEFT JOIN clients c ON a.client_id=c.id
+        WHERE c.email=?
+        ORDER BY datetime(a.start_time) DESC
+        """,
+        (user["email"],),
+    ).fetchall()
+    conn.close()
+    return render_template("billing.html", payments=payments, appointments=appointments, format_currency=format_currency)
+
+
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     user = current_user()
@@ -623,7 +814,7 @@ def admin():
     employees = conn.execute("SELECT * FROM users WHERE role='employee'").fetchall()
     services = conn.execute("SELECT * FROM services").fetchall()
     appointments = conn.execute(
-        "SELECT a.*, s.name as service_name, u.name as employee_name, c.name as client_name FROM appointments a LEFT JOIN services s ON a.service_id=s.id LEFT JOIN users u ON a.employee_id=u.id LEFT JOIN clients c ON a.client_id=c.id ORDER BY datetime(start_time) DESC LIMIT 20"
+        "SELECT a.*, s.name as service_name, s.deposit_cents, u.name as employee_name, c.name as client_name FROM appointments a LEFT JOIN services s ON a.service_id=s.id LEFT JOIN users u ON a.employee_id=u.id LEFT JOIN clients c ON a.client_id=c.id ORDER BY datetime(start_time) DESC LIMIT 20"
     ).fetchall()
     gift_cards = conn.execute("SELECT * FROM gift_cards ORDER BY created_at DESC LIMIT 20").fetchall()
     conn.close()
@@ -645,10 +836,11 @@ def add_service():
     description = request.form.get("description")
     price = int(float(request.form.get("price")) * 100)
     deposit = int(float(request.form.get("deposit")) * 100)
+    image_url = request.form.get("image_url")
     conn = get_db()
     conn.execute(
-        "INSERT INTO services (name, description, price_cents, deposit_cents) VALUES (?, ?, ?, ?)",
-        (name, description, price, deposit),
+        "INSERT INTO services (name, description, price_cents, deposit_cents, image_url) VALUES (?, ?, ?, ?, ?)",
+        (name, description, price, deposit, image_url),
     )
     conn.commit()
     conn.close()
@@ -673,6 +865,57 @@ def add_employee():
     conn.commit()
     conn.close()
     flash(f"Employee {name} added.", "success")
+    return redirect(url_for("admin"))
+
+
+@app.route("/admin/service/<int:service_id>/pricing", methods=["POST"])
+def update_service_pricing(service_id):
+    if not require_role("admin"):
+        return redirect(url_for("login"))
+    price = int(float(request.form.get("price")) * 100)
+    deposit = int(float(request.form.get("deposit")) * 100)
+    description = request.form.get("description")
+    image_url = request.form.get("image_url")
+    conn = get_db()
+    conn.execute(
+        "UPDATE services SET price_cents=?, deposit_cents=?, description=?, image_url=? WHERE id=?",
+        (price, deposit, description, image_url, service_id),
+    )
+    conn.commit()
+    conn.close()
+    flash("Service pricing updated.", "success")
+    return redirect(url_for("admin"))
+
+
+@app.route("/admin/appointments/<int:appointment_id>/update", methods=["POST"])
+def update_appointment(appointment_id):
+    if not require_role("admin"):
+        return redirect(url_for("login"))
+    status = request.form.get("status")
+    new_start_time = request.form.get("new_start_time")
+    conn = get_db()
+    appt = conn.execute("SELECT * FROM appointments WHERE id=?", (appointment_id,)).fetchone()
+    if not appt:
+        conn.close()
+        flash("Appointment not found.", "error")
+        return redirect(url_for("admin"))
+    start_value = appt["start_time"]
+    if new_start_time:
+        new_dt = datetime.fromisoformat(new_start_time)
+        if slot_taken(conn, appt["employee_id"], new_dt) or within_time_off(
+            conn, appt["employee_id"], new_dt
+        ):
+            conn.close()
+            flash("Selected reschedule time is unavailable.", "error")
+            return redirect(url_for("admin"))
+        start_value = new_dt.isoformat()
+    conn.execute(
+        "UPDATE appointments SET start_time=?, status=? WHERE id=?",
+        (start_value, status or appt["status"], appointment_id),
+    )
+    conn.commit()
+    conn.close()
+    flash("Appointment updated.", "success")
     return redirect(url_for("admin"))
 
 

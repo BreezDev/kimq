@@ -5,6 +5,9 @@
     <div class="grid">
         {% for service in services %}
         <div class="card">
+            {% if service['image_url'] %}
+            <div class="img-wrap"><img src="{{ service['image_url'] }}" alt="{{ service['name'] }}"></div>
+            {% endif %}
             <h3>{{ service['name'] }}</h3>
             <p class="muted">{{ service['description'] }}</p>
             <div class="price">{{ format_currency(service['price_cents']) }}</div>

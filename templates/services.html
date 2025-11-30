@@ -1,30 +1,48 @@
 {% extends 'base.html' %}
 {% block content %}
-<section class="section">
-    <h2 class="section-title">Services</h2>
-    <div class="grid">
+<section class="section luxe-intro">
+    <div class="section-header">
+        <p class="eyebrow">Signature Offerings</p>
+        <h2 class="section-title">Services</h2>
+        <p class="muted">Curated artistry with transparent deposits and luxe finishes. Tap a service to reserve your date.</p>
+    </div>
+    <div class="grid service-grid">
+        {% set placeholder = "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1200&q=80" %}
         {% for service in services %}
-        <div class="card">
+        <div class="card float-card">
+            <div class="img-wrap luxe-frame">
+                <img src="{{ service['image_url'] or placeholder }}" alt="{{ service['name'] }}"
+                     onerror="this.src='{{ placeholder }}'">
+                <div class="img-overlay">
+                    <span class="badge ghost">Deposit {{ format_currency(service['deposit_cents']) }}</span>
+                    <span class="badge">{{ format_currency(service['price_cents']) }}</span>
+                </div>
+            </div>
             <h3>{{ service['name'] }}</h3>
             <p class="muted">{{ service['description'] }}</p>
-            <div class="price">{{ format_currency(service['price_cents']) }}</div>
-            <p>Deposit: <strong>{{ format_currency(service['deposit_cents']) }}</strong></p>
-            <a class="btn" href="{{ url_for('book', service_id=service['id']) }}">Book + Pay Deposit</a>
+            <div class="cta-row">
+                <div class="price">{{ format_currency(service['price_cents']) }}</div>
+                <a class="btn" href="{{ url_for('book', service_id=service['id']) }}">Book + Pay Deposit</a>
+            </div>
         </div>
         {% endfor %}
     </div>
 </section>
-<section class="section">
-    <h2 class="section-title">Full Price List</h2>
+<section class="section price-list">
+    <div class="section-header">
+        <p class="eyebrow">Detailed Menu</p>
+        <h2 class="section-title">Full Price List</h2>
+        <p class="muted">Luxury styling with à-la-carte transparency. Ask about on-location travel and bridal party packages.</p>
+    </div>
     <div class="grid">
-        <div class="card">
+        <div class="card glass">
             <h3>Makeup Services</h3>
             <p>Bridal Makeup – 295</p>
             <p>Pre Wedding – 225</p>
             <p>Engagement – 250</p>
             <p>Bridal Trial – 195</p>
         </div>
-        <div class="card">
+        <div class="card glass">
             <h3>Styling Services</h3>
             <p>Bridal Style – 325+</p>
             <p>Pre-Wedding Events – 265+</p>

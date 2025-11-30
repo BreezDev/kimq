@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const navLinks = document.querySelector('#nav-links');
+    const navToggle = document.querySelector('#nav-toggle');
     const availabilityContainer = document.querySelector('#availability');
     const dateInput = document.querySelector('#date');
     const employeeSelect = document.querySelector('#employee_id');
@@ -126,6 +128,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 availabilityContainer.innerHTML = '<p class="muted">Unable to load availability right now.</p>';
             });
     };
+
+    if (navToggle && navLinks) {
+        navToggle.addEventListener('click', () => {
+            const isOpen = navLinks.classList.toggle('open');
+            navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 720) {
+                    navLinks.classList.remove('open');
+                    navToggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+        });
+    }
 
     if (dateInput) {
         dateInput.addEventListener('change', fetchAvailability);

@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
     <script defer src="{{ url_for('static', filename='main.js') }}"></script>
 </head>
-<body class="bg-black">
+<body class="bg-black luxe-bg">
     <nav class="navbar">
         <div class="brand">Kim Quraish</div>
         <div class="nav-links" id="nav-links">
@@ -30,7 +30,7 @@
                 <a href="{{ url_for('signup') }}" class="pill">Sign Up</a>
             {% endif %}
         </div>
-        <button class="nav-toggle" aria-label="Toggle navigation" onclick="document.getElementById('nav-links').classList.toggle('open')">☰</button>
+        <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
     </nav>
 
     <main>

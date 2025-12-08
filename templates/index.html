@@ -22,8 +22,8 @@
             <div class="contact-lines">
                 <span>Michigan · Canton </span>
                 <span>Hair, Makeup, Beauty</span>
-                <a href="mailto:kim@kimqbeauty.com">kim@kimqbeauty.com</a>
-                <a href="tel:5550100">(313)-598-0229</a>
+                <a href="mailto:quraishi1125@gmail.com">quraishi1125@gmail.com</a>
+                <a href="tel:3135980229">(313) 598-0229</a>
                 <a href="{{ url_for('services') }}">Portfolio</a>
             </div>
             <div class="divider"></div>
@@ -117,6 +117,47 @@
             <h3>3. Arrive and glow</h3>
             <p class="muted">Time to stop by. Expect timeline coordination, touch-up tips, and luxe finishing.</p>
         </div>
+    </div>
+</section>
+
+<section class="section calm-panel">
+    <div class="section-header">
+        <div>
+            <p class="eyebrow muted">What clients say</p>
+            <h2 class="section-title">Google Reviews</h2>
+            <p class="section-subtitle muted">Real feedback from brides and editorial clients who trusted Kim.</p>
+        </div>
+    </div>
+    <div class="reviews-grid">
+        {% for review in google_reviews %}
+        <div class="card review-card hover-lift">
+            <div class="stars">
+                {% for i in range(review.rating) %}★{% endfor %}
+            </div>
+            <p class="muted">{{ review.text }}</p>
+            <div class="small">— {{ review.author }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="section">
+    <div class="section-header">
+        <div>
+            <p class="eyebrow muted">Instagram Feed</p>
+            <h2 class="section-title">Latest studio moments</h2>
+            <p class="section-subtitle muted">Swipe-worthy looks from recent weddings and shoots.</p>
+        </div>
+    </div>
+    <div class="grid instagram-grid">
+        {% for post in instagram_posts %}
+        <div class="instagram-card minimal-card">
+            <a class="img-wrap" href="{{ post.permalink or '#' }}" target="_blank" rel="noopener">
+                <img src="{{ post.image }}" alt="Instagram look">
+            </a>
+            <p class="muted">{{ post.caption }}</p>
+        </div>
+        {% endfor %}
     </div>
 </section>
 {% endblock %}

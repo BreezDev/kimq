@@ -4,7 +4,7 @@
     <div class="hero-content">
         <p class="eyebrow">Services & Pricing</p>
         <h1><span class="gold-accent">Beauty</span> personalized.</h1>
-        <p class="muted">Book the look, secure the date, and let the us finish the rest.</p>
+        <p class="muted">Book the look, secure the date, and text Kim directly for anything you need.</p>
         <div class="hero-actions">
             <a class="btn" href="{{ url_for('book') }}">Reserve Your Artist</a>
             <a class="btn ghost" href="{{ url_for('contact') }}">Text Us</a>
@@ -39,8 +39,8 @@
             <p class="muted">Feathered lashes, sculpted glow, and hair detailing that holds.</p>
         </div>
         <div class="detail-tile hover-lift">
-            <h3>Concierge Care</h3>
-            <p class="muted">Timeline planning, on-site travel, and artist pairing handled in-house.</p>
+            <h3>Direct-to-artist</h3>
+            <p class="muted">No concierge layer—text Kim for timing, travel, or party updates.</p>
         </div>
     </div>
 </section>
@@ -51,6 +51,13 @@
             <p class="eyebrow">Bookable Services</p>
             <h2 class="section-title">Choose your glam moment</h2>
             <p class="muted">Premium artistry with plush pacing—polished, modern, and saturated in gold detail.</p>
+            {% if categories %}
+            <div class="pill-row" aria-label="Service categories">
+                {% for cat in categories %}
+                <span class="pill subtle">{{ cat }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
         <div class="floating-card">
             <p class="muted">Deposits are captured securely online. Remaining balance is payable at the studio or on-site.</p>
@@ -77,6 +84,7 @@
                     <div class="price">{{ format_currency(service['price_cents']) }}</div>
                 </div>
                 <p class="muted">{{ service['description'] }}</p>
+                <div class="pill muted">{{ service['category'] }} · {{ service['duration_minutes'] }} mins</div>
                 <div class="service-actions">
                     <div class="pill muted">Secure your date instantly</div>
                     <a class="btn" href="{{ url_for('book', service_id=service['id']) }}">Book + Pay Deposit</a>

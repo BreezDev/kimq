@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const availabilityContainer = document.querySelector('#availability');
     const dateInput = document.querySelector('#date');
     const employeeSelect = document.querySelector('#employee_id');
+    const timeInput = document.querySelector('#time');
     const calendarEl = document.querySelector('#calendar');
     const monthLabel = document.querySelector('#calendar-month');
     const prevMonthBtn = document.querySelector('#prev-month');
@@ -160,6 +161,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (employeeSelect) {
         employeeSelect.addEventListener('change', fetchAvailability);
     }
+    if (serviceSelect && serviceSelect.options.length && !serviceSelect.value) {
+        serviceSelect.value = serviceSelect.options[0].value;
+    }
+    if (timeInput && !timeInput.value) {
+        timeInput.value = '10:00';
+    }
     if (calendarEl) {
         renderCalendar();
         prevMonthBtn?.addEventListener('click', () => {
@@ -174,4 +181,12 @@ document.addEventListener('DOMContentLoaded', () => {
     syncDepositCopy();
     serviceSelect?.addEventListener('change', syncDepositCopy);
     fetchAvailability();
+
+    const adminNavToggle = document.querySelector('#admin-nav-toggle');
+    const adminSidebar = document.querySelector('#admin-sidebar');
+    if (adminNavToggle && adminSidebar) {
+        adminNavToggle.addEventListener('click', () => {
+            adminSidebar.classList.toggle('collapsed');
+        });
+    }
 });

@@ -8,9 +8,12 @@ import requests
 import stripe
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for, flash
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", "super-secret-key")
+app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "static", "uploads")
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 DATABASE = os.path.join(app.root_path, "kimq.db")
 
@@ -61,6 +64,12 @@ def init_db():
             price_cents INTEGER NOT NULL,
             deposit_cents INTEGER NOT NULL,
             image_url TEXT,
+            category TEXT,
+            calendar_color TEXT,
+            duration_minutes INTEGER DEFAULT 60,
+            processing_minutes INTEGER DEFAULT 0,
+            block_minutes INTEGER DEFAULT 0,
+            require_deposit INTEGER DEFAULT 1,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
         """
@@ -165,6 +174,15 @@ def init_db():
     )
     cur.execute(
         """
+        CREATE TABLE IF NOT EXISTS site_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        """
+    )
+    cur.execute(
+        """
         CREATE TABLE IF NOT EXISTS password_resets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -179,10 +197,26 @@ def init_db():
         cur.execute("ALTER TABLE services ADD COLUMN image_url TEXT")
     except sqlite3.OperationalError:
         pass
+    for column, default in [
+        ("category", "Bridal"),
+        ("calendar_color", "#f9b5d0"),
+        ("duration_minutes", 90),
+        ("processing_minutes", 0),
+        ("block_minutes", 0),
+        ("require_deposit", 1),
+    ]:
+        try:
+            cur.execute(
+                f"ALTER TABLE services ADD COLUMN {column} {'INTEGER' if 'minutes' in column or column=='require_deposit' else 'TEXT'}"
+            )
+            cur.execute(f"UPDATE services SET {column}=?", (default,))
+        except sqlite3.OperationalError:
+            pass
     conn.commit()
     seed_users(conn)
     seed_services(conn)
     seed_availability(conn)
+    seed_settings(conn)
     conn.close()
 
 
@@ -193,9 +227,9 @@ def seed_users(conn):
         return
     users = [
         {
-            "name": "Kim Quraish",
-            "email": "kim@studio.com",
-            "phone": "555-0100",
+            "name": "Kim Quraishi",
+            "email": "quraishi1125@gmail.com",
+            "phone": "(313) 598-0229",
             "role": "admin",
             "password": "adminpass",
         },
@@ -240,6 +274,11 @@ def seed_services(conn):
             29500,
             10000,
             "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1200&q=80",
+            "Bridal",
+            120,
+            30,
+            15,
+            "#f9b5d0",
         ),
         (
             "Pre Wedding",
@@ -247,6 +286,11 @@ def seed_services(conn):
             22500,
             9000,
             "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=1200&q=80",
+            "Events",
+            90,
+            15,
+            15,
+            "#f2d4ae",
         ),
         (
             "Engagement",
@@ -254,6 +298,11 @@ def seed_services(conn):
             25000,
             10000,
             "https://images.unsplash.com/photo-1509631171560-7e2e4ba0b82b?auto=format&fit=crop&w=1200&q=80",
+            "Engagement",
+            105,
+            15,
+            15,
+            "#b8d8ba",
         ),
         (
             "Bridal Trial",
@@ -261,6 +310,11 @@ def seed_services(conn):
             19500,
             7500,
             "https://images.unsplash.com/photo-1511288593014-8acb33db1c83?auto=format&fit=crop&w=1200&q=80",
+            "Trials",
+            90,
+            0,
+            15,
+            "#d1c4e9",
         ),
         (
             "Bridal Style",
@@ -268,6 +322,11 @@ def seed_services(conn):
             32500,
             12000,
             "https://images.unsplash.com/photo-1504208458-46c492d1571c?auto=format&fit=crop&w=1200&q=80",
+            "Bridal",
+            120,
+            30,
+            15,
+            "#f9b5d0",
         ),
         (
             "Pre-Wedding Events",
@@ -275,6 +334,11 @@ def seed_services(conn):
             26500,
             10000,
             "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80",
+            "Events",
+            90,
+            15,
+            15,
+            "#f2d4ae",
         ),
         (
             "Bridal Trial Style",
@@ -282,6 +346,11 @@ def seed_services(conn):
             19500,
             7500,
             "https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=1200&q=80",
+            "Trials",
+            90,
+            0,
+            15,
+            "#d1c4e9",
         ),
         (
             "Engagement Style",
@@ -289,6 +358,11 @@ def seed_services(conn):
             25500,
             9500,
             "https://images.unsplash.com/photo-1504198453319-5ce911bafcde?auto=format&fit=crop&w=1200&q=80",
+            "Engagement",
+            90,
+            15,
+            15,
+            "#b8d8ba",
         ),
         (
             "Formal Style",
@@ -296,6 +370,11 @@ def seed_services(conn):
             11500,
             5000,
             "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1200&q=80",
+            "Events",
+            75,
+            0,
+            15,
+            "#f2d4ae",
         ),
         (
             "Blow Dry",
@@ -303,12 +382,20 @@ def seed_services(conn):
             4500,
             2000,
             "https://images.unsplash.com/photo-1503999422166-6dcb1cdbe1b5?auto=format&fit=crop&w=1200&q=80",
+            "Add-On",
+            60,
+            0,
+            15,
+            "#c5e1f5",
         ),
     ]
-    for name, desc, price, deposit, image_url in services:
+    for name, desc, price, deposit, image_url, category, duration, processing, block, color in services:
         cur.execute(
-            "INSERT INTO services (name, description, price_cents, deposit_cents, image_url) VALUES (?, ?, ?, ?, ?)",
-            (name, desc, price, deposit, image_url),
+            """
+            INSERT INTO services (name, description, price_cents, deposit_cents, image_url, category, duration_minutes, processing_minutes, block_minutes, calendar_color)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (name, desc, price, deposit, image_url, category, duration, processing, block, color),
         )
     conn.commit()
 
@@ -318,13 +405,21 @@ def seed_availability(conn):
     existing = cur.execute("SELECT COUNT(*) FROM availability").fetchone()[0]
     if existing:
         return
-    employees = cur.execute("SELECT id FROM users WHERE role='employee'").fetchall()
+    employees = cur.execute("SELECT id FROM users WHERE role IN ('employee','admin')").fetchall()
     for emp in employees:
         for weekday in range(0, 5):
             cur.execute(
                 "INSERT INTO availability (employee_id, weekday, start_time, end_time) VALUES (?, ?, ?, ?)",
-                (emp["id"], weekday, "09:00", "17:00"),
+                (emp["id"], weekday, "08:00", "20:00"),
             )
+    conn.commit()
+
+
+def seed_settings(conn):
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT OR IGNORE INTO site_settings (key, value) VALUES ('announcement', 'Now booking 8am-8pm with Kim Quraishi. Text (313) 598-0229 for concierge-free support.')"
+    )
     conn.commit()
 
 
@@ -332,6 +427,15 @@ def seed_availability(conn):
 
 def format_currency(cents: int) -> str:
     return f"${cents / 100:,.2f}"
+
+
+def save_uploaded_image(file_storage):
+    if not file_storage or not file_storage.filename:
+        return None
+    filename = secure_filename(file_storage.filename)
+    dest_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    file_storage.save(dest_path)
+    return f"/static/uploads/{filename}"
 
 
 @app.template_filter("beauty_time")
@@ -388,7 +492,7 @@ def send_email(to_email: str, subject: str, body: str):
         "https://api.resend.com/emails",
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         json={
-            "from": "Kim Quraish Beauty Studio <hello@kimq.com>",
+            "from": "Kim Quraishi Beauty Studio <hello@kimq.com>",
             "to": [to_email],
             "subject": subject,
             "html": body,
@@ -397,17 +501,63 @@ def send_email(to_email: str, subject: str, body: str):
     )
 
 
-def send_sms(to_number: str, message: str):
-    api_key = os.environ.get("EZTEXTING_API_KEY")
-    if not api_key:
-        print(f"[sms skipped] to {to_number}: {message}")
-        return
-    requests.post(
-        "https://api.eztexting.com/v1/messaging",
-        headers={"X-API-Key": api_key, "Content-Type": "application/json"},
-        json={"to": to_number, "message": message},
-        timeout=10,
-    )
+def fetch_instagram_posts(limit: int = 6):
+    token = os.environ.get("INSTAGRAM_ACCESS_TOKEN")
+    user_id = os.environ.get("INSTAGRAM_USER_ID", "me")
+    if not token:
+        return []
+    try:
+        resp = requests.get(
+            f"https://graph.instagram.com/{user_id}/media",
+            params={
+                "fields": "id,caption,media_url,thumbnail_url,permalink",
+                "access_token": token,
+                "limit": limit,
+            },
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json().get("data", [])
+        posts = []
+        for item in data:
+            posts.append(
+                {
+                    "image": item.get("media_url") or item.get("thumbnail_url"),
+                    "caption": item.get("caption", "Studio update"),
+                    "permalink": item.get("permalink"),
+                }
+            )
+        return [p for p in posts if p.get("image")][:limit]
+    except Exception as exc:  # noqa: BLE001
+        print(f"[instagram] failed to load feed: {exc}")
+        return []
+
+
+def read_log_tail(path: str, max_lines: int = 200):
+    if not os.path.exists(path):
+        return []
+    with open(path, "r", encoding="utf-8", errors="ignore") as f:
+        lines = f.readlines()[-max_lines:]
+    return lines
+
+
+def summarize_logs():
+    log_paths = {
+        "access": os.environ.get("ACCESS_LOG", "/var/log/www.kimqbeauty.com.access.log"),
+        "error": os.environ.get("ERROR_LOG", "/var/log/www.kimqbeauty.com.error.log"),
+        "server": os.environ.get("SERVER_LOG", "/var/log/www.kimqbeauty.com.server.log"),
+    }
+    metrics = {}
+    for kind, path in log_paths.items():
+        tail = read_log_tail(path)
+        metrics[kind] = {
+            "path": path,
+            "lines": len(tail),
+            "recent": tail[-5:] if tail else [],
+        }
+        if kind == "access" and tail:
+            metrics[kind]["today_hits"] = sum(1 for line in tail if datetime.utcnow().strftime("%d/%b/%Y") in line)
+    return metrics
 
 
 def issue_reset_token(user_id: int) -> str:
@@ -442,6 +592,13 @@ def validate_reset_token(token: str):
 def generate_gift_code() -> str:
     alphabet = string.ascii_uppercase + string.digits
     return "KQ-" + "".join(secrets.choice(alphabet) for _ in range(8))
+
+
+def get_setting(key: str, default: str = "") -> str:
+    conn = get_db()
+    row = conn.execute("SELECT value FROM site_settings WHERE key=?", (key,)).fetchone()
+    conn.close()
+    return row["value"] if row else default
 
 
 def slot_taken(conn, employee_id: int, start_at: datetime) -> bool:
@@ -491,7 +648,40 @@ def available_slots_for_employee(conn, employee_id: int, day: date):
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+    google_reviews = [
+        {
+            "author": "Salma A.",
+            "rating": 5,
+            "text": "Kim made my bridal morning calm and gorgeous. Makeup stayed perfect for 14 hours!",
+        },
+        {
+            "author": "Nadia P.",
+            "rating": 5,
+            "text": "The only artist I trust for shoots. She understands camera work and skin tones flawlessly.",
+        },
+        {
+            "author": "Farah K.",
+            "rating": 5,
+            "text": "Booked hair + makeup for my sister’s wedding party. Everyone looked cohesive and felt seen.",
+        },
+    ]
+    live_instagram = fetch_instagram_posts(limit=9)
+    fallback_instagram = [
+        {
+            "image": "https://images.unsplash.com/photo-1509631171560-7e2e4ba0b82b?auto=format&fit=crop&w=600&q=80",
+            "caption": "Soft glam with lived-in waves",
+        },
+        {
+            "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=600&q=80",
+            "caption": "Bridal glow with natural lashes",
+        },
+        {
+            "image": "https://images.unsplash.com/photo-1504198453319-5ce911bafcde?auto=format&fit=crop&w=600&q=80",
+            "caption": "Reception-ready volume",
+        },
+    ]
+    instagram_posts = live_instagram or fallback_instagram
+    return render_template("index.html", google_reviews=google_reviews, instagram_posts=instagram_posts)
 
 
 @app.route("/services")
@@ -499,15 +689,18 @@ def services():
     conn = get_db()
     items = conn.execute("SELECT * FROM services ORDER BY id").fetchall()
     conn.close()
-    return render_template("services.html", services=items, format_currency=format_currency)
+    categories = sorted({(item["category"] or "Uncategorized") for item in items}) if items else []
+    return render_template("services.html", services=items, categories=categories, format_currency=format_currency)
 
 
 @app.route("/book", methods=["GET", "POST"])
 def book():
     conn = get_db()
     services = conn.execute("SELECT * FROM services ORDER BY id").fetchall()
-    employees = conn.execute("SELECT * FROM users WHERE role='employee'").fetchall()
+    employees = conn.execute("SELECT * FROM users WHERE role IN ('employee','admin')").fetchall()
     selected_service = request.args.get("service_id")
+    if services and not selected_service:
+        selected_service = str(services[0]["id"])
 
     if request.method == "POST":
         service_id = int(request.form.get("service_id"))
@@ -586,8 +779,7 @@ def book():
 
         email_body = f"<p>Hi {name},</p><p>Your appointment for {service['name']} is confirmed for {appt_datetime.strftime('%B %d, %Y %I:%M %p')}.</p><p>Deposit: {format_currency(service['deposit_cents'])}</p>"
         send_email(email, "Appointment Confirmation", email_body)
-        send_sms(phone, f"Kim Quraish Beauty Studio: confirmed {service['name']} on {appt_datetime.strftime('%b %d %I:%M %p')}")
-        flash("Appointment booked and deposit captured. Confirmation sent via email and SMS.", "success")
+        flash("Appointment booked and deposit captured. Confirmation sent via email.", "success")
         conn.close()
         return redirect(url_for("appointment_detail", appointment_id=appt_id))
 
@@ -656,7 +848,7 @@ def gift_cards():
         conn.close()
         send_email(
             email,
-            "Your Kim Quraish Beauty Studio Gift Card",
+            "Your Kim Quraishi Beauty Studio Gift Card",
             f"<p>Hi {to_name},</p><p>You received a gift card from {from_name} for {format_currency(amount)}.</p><p>Code: <strong>{code}</strong></p><p>Message: {message}</p>",
         )
         flash("Gift card purchased! We emailed the details.", "success")
@@ -692,7 +884,7 @@ def login():
             reset_link = url_for("reset_password", token=token, _external=True)
             send_email(
                 email,
-                "Reset your Kim Quraish password",
+                "Reset your Kim Quraishi password",
                 f"<p>Click below to reset your password:</p><p><a href='{reset_link}'>{reset_link}</a></p>",
             )
             flash("Reset link sent. Check your email (and spam).", "success")
@@ -724,7 +916,7 @@ def forgot_password():
         reset_link = url_for("reset_password", token=token, _external=True)
         send_email(
             email,
-            "Reset your Kim Quraish password",
+            "Reset your Kim Quraishi password",
             f"<p>Hi {user['name']},</p><p>Reset your password here: <a href='{reset_link}'>{reset_link}</a></p>",
         )
         flash("Password reset link sent. Please check your inbox.", "success")
@@ -822,21 +1014,51 @@ def admin():
         flash("Admin access only.", "error")
         return redirect(url_for("login"))
     conn = get_db()
-    employees = conn.execute("SELECT * FROM users WHERE role='employee'").fetchall()
+    employees = conn.execute("SELECT * FROM users WHERE role IN ('employee','admin')").fetchall()
     services = conn.execute("SELECT * FROM services").fetchall()
+    categories = sorted({(svc["category"] or "Uncategorized") for svc in services}) if services else []
     appointments = conn.execute(
-        "SELECT a.*, s.name as service_name, s.deposit_cents, u.name as employee_name, c.name as client_name FROM appointments a LEFT JOIN services s ON a.service_id=s.id LEFT JOIN users u ON a.employee_id=u.id LEFT JOIN clients c ON a.client_id=c.id ORDER BY datetime(start_time) DESC LIMIT 20"
+        "SELECT a.*, s.name as service_name, s.deposit_cents, u.name as employee_name, c.name as client_name FROM appointments a LEFT JOIN services s ON a.service_id=s.id LEFT JOIN users u ON a.employee_id=u.id LEFT JOIN clients c ON a.client_id=c.id ORDER BY datetime(start_time) DESC LIMIT 20",
     ).fetchall()
     gift_cards = conn.execute("SELECT * FROM gift_cards ORDER BY created_at DESC LIMIT 20").fetchall()
+    clients = conn.execute("SELECT * FROM clients ORDER BY datetime(created_at) DESC LIMIT 50").fetchall()
+    earnings = conn.execute(
+        "SELECT COALESCE(SUM(amount_cents),0) as total, COUNT(*) as count FROM payments",
+    ).fetchone()
+    upcoming_count = conn.execute(
+        "SELECT COUNT(*) as c FROM appointments WHERE datetime(start_time) >= datetime('now')",
+    ).fetchone()["c"]
     conn.close()
+    log_metrics = summarize_logs()
     return render_template(
         "admin.html",
         employees=employees,
         services=services,
+        categories=categories,
         appointments=appointments,
         gift_cards=gift_cards,
+        clients=clients,
         format_currency=format_currency,
+        announcement=get_setting("announcement", ""),
+        earnings=earnings,
+        upcoming_count=upcoming_count,
+        log_metrics=log_metrics,
     )
+
+@app.route("/admin/announcement", methods=["POST"])
+def update_announcement():
+    if not require_role("admin"):
+        return redirect(url_for("login"))
+    message = request.form.get("announcement", "").strip()
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO site_settings (key, value, updated_at) VALUES ('announcement', ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=CURRENT_TIMESTAMP",
+        (message,),
+    )
+    conn.commit()
+    conn.close()
+    flash("Announcement updated.", "success")
+    return redirect(url_for("admin"))
 
 
 @app.route("/admin/add_service", methods=["POST"])
@@ -847,15 +1069,52 @@ def add_service():
     description = request.form.get("description")
     price = int(float(request.form.get("price")) * 100)
     deposit = int(float(request.form.get("deposit")) * 100)
+    category = request.form.get("category")
+    calendar_color = request.form.get("calendar_color")
+    duration = int(request.form.get("duration") or 60)
+    processing = int(request.form.get("processing_minutes") or 0)
+    block_minutes = int(request.form.get("block_minutes") or 0)
+    require_deposit = 1 if request.form.get("require_deposit") == "on" else 0
     image_url = request.form.get("image_url")
+    uploaded = save_uploaded_image(request.files.get("image_file"))
+    if uploaded:
+        image_url = uploaded
     conn = get_db()
     conn.execute(
-        "INSERT INTO services (name, description, price_cents, deposit_cents, image_url) VALUES (?, ?, ?, ?, ?)",
-        (name, description, price, deposit, image_url),
+        """
+        INSERT INTO services (name, description, price_cents, deposit_cents, image_url, category, calendar_color, duration_minutes, processing_minutes, block_minutes, require_deposit)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            name,
+            description,
+            price,
+            deposit,
+            image_url,
+            category,
+            calendar_color,
+            duration,
+            processing,
+            block_minutes,
+            require_deposit,
+        ),
     )
     conn.commit()
     conn.close()
     flash("Service added.", "success")
+    return redirect(url_for("admin"))
+
+
+@app.route("/admin/services/<int:service_id>/delete", methods=["POST"])
+def delete_service(service_id):
+    if not require_role("admin"):
+        return redirect(url_for("login"))
+    conn = get_db()
+    conn.execute("DELETE FROM appointments WHERE service_id=?", (service_id,))
+    conn.execute("DELETE FROM services WHERE id=?", (service_id,))
+    conn.commit()
+    conn.close()
+    flash("Service removed.", "success")
     return redirect(url_for("admin"))
 
 
@@ -887,10 +1146,35 @@ def update_service_pricing(service_id):
     deposit = int(float(request.form.get("deposit")) * 100)
     description = request.form.get("description")
     image_url = request.form.get("image_url")
+    category = request.form.get("category")
+    calendar_color = request.form.get("calendar_color")
+    duration = int(request.form.get("duration") or 60)
+    processing = int(request.form.get("processing_minutes") or 0)
+    block_minutes = int(request.form.get("block_minutes") or 0)
+    require_deposit = 1 if request.form.get("require_deposit") == "on" else 0
+    uploaded = save_uploaded_image(request.files.get("image_file"))
+    if uploaded:
+        image_url = uploaded
     conn = get_db()
     conn.execute(
-        "UPDATE services SET price_cents=?, deposit_cents=?, description=?, image_url=? WHERE id=?",
-        (price, deposit, description, image_url, service_id),
+        """
+        UPDATE services
+        SET price_cents=?, deposit_cents=?, description=?, image_url=?, category=?, calendar_color=?, duration_minutes=?, processing_minutes=?, block_minutes=?, require_deposit=?
+        WHERE id=?
+        """,
+        (
+            price,
+            deposit,
+            description,
+            image_url,
+            category,
+            calendar_color,
+            duration,
+            processing,
+            block_minutes,
+            require_deposit,
+            service_id,
+        ),
     )
     conn.commit()
     conn.close()
@@ -902,31 +1186,7 @@ def update_service_pricing(service_id):
 def update_appointment(appointment_id):
     if not require_role("admin"):
         return redirect(url_for("login"))
-    status = request.form.get("status")
-    new_start_time = request.form.get("new_start_time")
-    conn = get_db()
-    appt = conn.execute("SELECT * FROM appointments WHERE id=?", (appointment_id,)).fetchone()
-    if not appt:
-        conn.close()
-        flash("Appointment not found.", "error")
-        return redirect(url_for("admin"))
-    start_value = appt["start_time"]
-    if new_start_time:
-        new_dt = datetime.fromisoformat(new_start_time)
-        if slot_taken(conn, appt["employee_id"], new_dt) or within_time_off(
-            conn, appt["employee_id"], new_dt
-        ):
-            conn.close()
-            flash("Selected reschedule time is unavailable.", "error")
-            return redirect(url_for("admin"))
-        start_value = new_dt.isoformat()
-    conn.execute(
-        "UPDATE appointments SET start_time=?, status=? WHERE id=?",
-        (start_value, status or appt["status"], appointment_id),
-    )
-    conn.commit()
-    conn.close()
-    flash("Appointment updated.", "success")
+    flash("Rescheduling and cancelling are unavailable via dashboard. Please handle directly with the client.", "error")
     return redirect(url_for("admin"))
 
 
@@ -1035,7 +1295,7 @@ def api_availability():
         return jsonify([])
     day = datetime.fromisoformat(date_str).date()
     conn = get_db()
-    employees = conn.execute("SELECT * FROM users WHERE role='employee'").fetchall()
+    employees = conn.execute("SELECT * FROM users WHERE role IN ('employee','admin')").fetchall()
     results = []
     for emp in employees:
         if employee_id and employee_id != "any" and int(employee_id) != emp["id"]:
@@ -1057,7 +1317,11 @@ def api_availability():
 
 @app.context_processor
 def inject_user():
-    return {"current_user": current_user(), "now": datetime.now}
+    return {
+        "current_user": current_user(),
+        "now": datetime.now,
+        "announcement": get_setting("announcement", ""),
+    }
 
 
 init_db()

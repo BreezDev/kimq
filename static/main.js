@@ -174,4 +174,12 @@ document.addEventListener('DOMContentLoaded', () => {
     syncDepositCopy();
     serviceSelect?.addEventListener('change', syncDepositCopy);
     fetchAvailability();
+
+    const adminNavToggle = document.querySelector('#admin-nav-toggle');
+    const adminSidebar = document.querySelector('#admin-sidebar');
+    if (adminNavToggle && adminSidebar) {
+        adminNavToggle.addEventListener('click', () => {
+            adminSidebar.classList.toggle('collapsed');
+        });
+    }
 });

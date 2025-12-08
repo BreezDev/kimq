@@ -501,17 +501,63 @@ def send_email(to_email: str, subject: str, body: str):
     )
 
 
-def send_sms(to_number: str, message: str):
-    api_key = os.environ.get("EZTEXTING_API_KEY")
-    if not api_key:
-        print(f"[sms skipped] to {to_number}: {message}")
-        return
-    requests.post(
-        "https://api.eztexting.com/v1/messaging",
-        headers={"X-API-Key": api_key, "Content-Type": "application/json"},
-        json={"to": to_number, "message": message},
-        timeout=10,
-    )
+def fetch_instagram_posts(limit: int = 6):
+    token = os.environ.get("INSTAGRAM_ACCESS_TOKEN")
+    user_id = os.environ.get("INSTAGRAM_USER_ID", "me")
+    if not token:
+        return []
+    try:
+        resp = requests.get(
+            f"https://graph.instagram.com/{user_id}/media",
+            params={
+                "fields": "id,caption,media_url,thumbnail_url,permalink",
+                "access_token": token,
+                "limit": limit,
+            },
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json().get("data", [])
+        posts = []
+        for item in data:
+            posts.append(
+                {
+                    "image": item.get("media_url") or item.get("thumbnail_url"),
+                    "caption": item.get("caption", "Studio update"),
+                    "permalink": item.get("permalink"),
+                }
+            )
+        return [p for p in posts if p.get("image")][:limit]
+    except Exception as exc:  # noqa: BLE001
+        print(f"[instagram] failed to load feed: {exc}")
+        return []
+
+
+def read_log_tail(path: str, max_lines: int = 200):
+    if not os.path.exists(path):
+        return []
+    with open(path, "r", encoding="utf-8", errors="ignore") as f:
+        lines = f.readlines()[-max_lines:]
+    return lines
+
+
+def summarize_logs():
+    log_paths = {
+        "access": os.environ.get("ACCESS_LOG", "/var/log/www.kimqbeauty.com.access.log"),
+        "error": os.environ.get("ERROR_LOG", "/var/log/www.kimqbeauty.com.error.log"),
+        "server": os.environ.get("SERVER_LOG", "/var/log/www.kimqbeauty.com.server.log"),
+    }
+    metrics = {}
+    for kind, path in log_paths.items():
+        tail = read_log_tail(path)
+        metrics[kind] = {
+            "path": path,
+            "lines": len(tail),
+            "recent": tail[-5:] if tail else [],
+        }
+        if kind == "access" and tail:
+            metrics[kind]["today_hits"] = sum(1 for line in tail if datetime.utcnow().strftime("%d/%b/%Y") in line)
+    return metrics
 
 
 def issue_reset_token(user_id: int) -> str:
@@ -619,7 +665,8 @@ def home():
             "text": "Booked hair + makeup for my sister’s wedding party. Everyone looked cohesive and felt seen.",
         },
     ]
-    instagram_posts = [
+    live_instagram = fetch_instagram_posts(limit=9)
+    fallback_instagram = [
         {
             "image": "https://images.unsplash.com/photo-1509631171560-7e2e4ba0b82b?auto=format&fit=crop&w=600&q=80",
             "caption": "Soft glam with lived-in waves",
@@ -633,6 +680,7 @@ def home():
             "caption": "Reception-ready volume",
         },
     ]
+    instagram_posts = live_instagram or fallback_instagram
     return render_template("index.html", google_reviews=google_reviews, instagram_posts=instagram_posts)
 
 
@@ -641,7 +689,8 @@ def services():
     conn = get_db()
     items = conn.execute("SELECT * FROM services ORDER BY id").fetchall()
     conn.close()
-    return render_template("services.html", services=items, format_currency=format_currency)
+    categories = sorted({(item["category"] or "Uncategorized") for item in items}) if items else []
+    return render_template("services.html", services=items, categories=categories, format_currency=format_currency)
 
 
 @app.route("/book", methods=["GET", "POST"])
@@ -650,6 +699,8 @@ def book():
     services = conn.execute("SELECT * FROM services ORDER BY id").fetchall()
     employees = conn.execute("SELECT * FROM users WHERE role IN ('employee','admin')").fetchall()
     selected_service = request.args.get("service_id")
+    if services and not selected_service:
+        selected_service = str(services[0]["id"])
 
     if request.method == "POST":
         service_id = int(request.form.get("service_id"))
@@ -728,11 +779,7 @@ def book():
 
         email_body = f"<p>Hi {name},</p><p>Your appointment for {service['name']} is confirmed for {appt_datetime.strftime('%B %d, %Y %I:%M %p')}.</p><p>Deposit: {format_currency(service['deposit_cents'])}</p>"
         send_email(email, "Appointment Confirmation", email_body)
-        send_sms(
-            phone,
-            f"Kim Quraishi Beauty Studio: confirmed {service['name']} on {appt_datetime.strftime('%b %d %I:%M %p')}",
-        )
-        flash("Appointment booked and deposit captured. Confirmation sent via email and SMS.", "success")
+        flash("Appointment booked and deposit captured. Confirmation sent via email.", "success")
         conn.close()
         return redirect(url_for("appointment_detail", appointment_id=appt_id))
 
@@ -969,24 +1016,49 @@ def admin():
     conn = get_db()
     employees = conn.execute("SELECT * FROM users WHERE role IN ('employee','admin')").fetchall()
     services = conn.execute("SELECT * FROM services").fetchall()
+    categories = sorted({(svc["category"] or "Uncategorized") for svc in services}) if services else []
     appointments = conn.execute(
-        "SELECT a.*, s.name as service_name, s.deposit_cents, u.name as employee_name, c.name as client_name FROM appointments a LEFT JOIN services s ON a.service_id=s.id LEFT JOIN users u ON a.employee_id=u.id LEFT JOIN clients c ON a.client_id=c.id ORDER BY datetime(start_time) DESC LIMIT 20"
+        "SELECT a.*, s.name as service_name, s.deposit_cents, u.name as employee_name, c.name as client_name FROM appointments a LEFT JOIN services s ON a.service_id=s.id LEFT JOIN users u ON a.employee_id=u.id LEFT JOIN clients c ON a.client_id=c.id ORDER BY datetime(start_time) DESC LIMIT 20",
     ).fetchall()
     gift_cards = conn.execute("SELECT * FROM gift_cards ORDER BY created_at DESC LIMIT 20").fetchall()
+    clients = conn.execute("SELECT * FROM clients ORDER BY datetime(created_at) DESC LIMIT 50").fetchall()
     earnings = conn.execute(
-        "SELECT COALESCE(SUM(amount_cents),0) as total, COUNT(*) as count FROM payments"
+        "SELECT COALESCE(SUM(amount_cents),0) as total, COUNT(*) as count FROM payments",
     ).fetchone()
+    upcoming_count = conn.execute(
+        "SELECT COUNT(*) as c FROM appointments WHERE datetime(start_time) >= datetime('now')",
+    ).fetchone()["c"]
     conn.close()
+    log_metrics = summarize_logs()
     return render_template(
         "admin.html",
         employees=employees,
         services=services,
+        categories=categories,
         appointments=appointments,
         gift_cards=gift_cards,
+        clients=clients,
         format_currency=format_currency,
         announcement=get_setting("announcement", ""),
         earnings=earnings,
+        upcoming_count=upcoming_count,
+        log_metrics=log_metrics,
     )
+
+@app.route("/admin/announcement", methods=["POST"])
+def update_announcement():
+    if not require_role("admin"):
+        return redirect(url_for("login"))
+    message = request.form.get("announcement", "").strip()
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO site_settings (key, value, updated_at) VALUES ('announcement', ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=CURRENT_TIMESTAMP",
+        (message,),
+    )
+    conn.commit()
+    conn.close()
+    flash("Announcement updated.", "success")
+    return redirect(url_for("admin"))
 
 
 @app.route("/admin/announcement", methods=["POST"])
@@ -1046,6 +1118,19 @@ def add_service():
     conn.commit()
     conn.close()
     flash("Service added.", "success")
+    return redirect(url_for("admin"))
+
+
+@app.route("/admin/services/<int:service_id>/delete", methods=["POST"])
+def delete_service(service_id):
+    if not require_role("admin"):
+        return redirect(url_for("login"))
+    conn = get_db()
+    conn.execute("DELETE FROM appointments WHERE service_id=?", (service_id,))
+    conn.execute("DELETE FROM services WHERE id=?", (service_id,))
+    conn.commit()
+    conn.close()
+    flash("Service removed.", "success")
     return redirect(url_for("admin"))
 
 
@@ -1117,31 +1202,7 @@ def update_service_pricing(service_id):
 def update_appointment(appointment_id):
     if not require_role("admin"):
         return redirect(url_for("login"))
-    status = request.form.get("status")
-    new_start_time = request.form.get("new_start_time")
-    conn = get_db()
-    appt = conn.execute("SELECT * FROM appointments WHERE id=?", (appointment_id,)).fetchone()
-    if not appt:
-        conn.close()
-        flash("Appointment not found.", "error")
-        return redirect(url_for("admin"))
-    start_value = appt["start_time"]
-    if new_start_time:
-        new_dt = datetime.fromisoformat(new_start_time)
-        if slot_taken(conn, appt["employee_id"], new_dt) or within_time_off(
-            conn, appt["employee_id"], new_dt
-        ):
-            conn.close()
-            flash("Selected reschedule time is unavailable.", "error")
-            return redirect(url_for("admin"))
-        start_value = new_dt.isoformat()
-    conn.execute(
-        "UPDATE appointments SET start_time=?, status=? WHERE id=?",
-        (start_value, status or appt["status"], appointment_id),
-    )
-    conn.commit()
-    conn.close()
-    flash("Appointment updated.", "success")
+    flash("Rescheduling and cancelling are unavailable via dashboard. Please handle directly with the client.", "error")
     return redirect(url_for("admin"))
 
 

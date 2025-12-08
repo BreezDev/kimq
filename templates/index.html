@@ -152,7 +152,9 @@
     <div class="grid instagram-grid">
         {% for post in instagram_posts %}
         <div class="instagram-card minimal-card">
-            <div class="img-wrap"><img src="{{ post.image }}" alt="Instagram look"></div>
+            <a class="img-wrap" href="{{ post.permalink or '#' }}" target="_blank" rel="noopener">
+                <img src="{{ post.image }}" alt="Instagram look">
+            </a>
             <p class="muted">{{ post.caption }}</p>
         </div>
         {% endfor %}

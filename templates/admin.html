@@ -6,16 +6,25 @@
             <button class="btn ghost full" id="admin-nav-toggle" type="button">☰ Admin Nav</button>
             <ul class="stacked-nav">
                 <li><a href="#announcement">Announcement</a></li>
-                <li><a href="#services">Services</a></li>
+                <li><a href="#analytics">Analytics</a></li>
+                <li>
+                    <a href="#services">Services</a>
+                    <ul class="sub-nav">
+                        <li><a href="#services-manage">Edit services</a></li>
+                        <li><a href="#services-add">Add a service</a></li>
+                        <li><a href="#services-remove">Remove a service</a></li>
+                    </ul>
+                </li>
                 <li><a href="#team">Team</a></li>
                 <li><a href="#availability">Availability</a></li>
                 <li><a href="#appointments">Appointments</a></li>
+                <li><a href="#clients">Clients</a></li>
                 <li><a href="#gift-cards">Gift Cards</a></li>
             </ul>
         </aside>
         <div class="admin-main">
             <h2 class="section-title">Admin Panel</h2>
-            <div class="grid">
+            <div class="grid admin-top-grid">
                 <div class="card" id="announcement">
                     <h3>Sitewide announcement</h3>
                     <p class="muted">Show a studio-wide banner on every page. Use this for promos, location changes, or day-of updates.</p>
@@ -24,12 +33,15 @@
                         <button class="btn" type="submit">Update banner</button>
                     </form>
                 </div>
-                <div class="card">
-                    <h3>Earnings & Stripe view</h3>
-                    <p class="muted">Totals reflect what has been captured through deposits, gift cards, and payments.</p>
+                <div class="card" id="analytics">
+                    <h3>Dashboard analytics</h3>
                     <div class="analytics-grid">
                         <div>
-                            <div class="eyebrow">Total captured</div>
+                            <div class="eyebrow">Upcoming appointments</div>
+                            <div class="metric">{{ upcoming_count }}</div>
+                        </div>
+                        <div>
+                            <div class="eyebrow">Captured via Stripe</div>
                             <div class="metric">{{ format_currency(earnings['total']) }}</div>
                         </div>
                         <div>
@@ -37,66 +49,100 @@
                             <div class="metric">{{ earnings['count'] }}</div>
                         </div>
                     </div>
+                    <div class="log-block">
+                        <div class="eyebrow">Log snapshots (PythonAnywhere)</div>
+                        <div class="log-grid">
+                            {% for kind, meta in log_metrics.items() %}
+                            <div class="log-card">
+                                <div class="small">{{ kind|capitalize }} log</div>
+                                <div class="pill subtle">{{ meta.path }}</div>
+                                <div class="muted small">Last {{ meta.lines }} lines loaded.</div>
+                                {% if meta.today_hits %}<div class="small">Today: {{ meta.today_hits }} hits</div>{% endif %}
+                                {% if meta.recent %}
+                                <details>
+                                    <summary class="small">Recent entries</summary>
+                                    <pre class="log-preview">{% for line in meta.recent %}{{ line }}{% endfor %}</pre>
+                                </details>
+                                {% else %}
+                                <div class="small muted">No entries found.</div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                     <div class="muted small">Connect your Stripe dashboard to reconcile payouts and analytics.</div>
                 </div>
             </div>
 
             <div class="card" id="services">
-                <div class="card-header"><h3>Services</h3></div>
-                <table class="table">
-                    <tr><th>Name</th><th>Category</th><th>Price</th><th>Deposit</th><th>Duration</th><th>Update</th></tr>
-                    {% for svc in services %}
-                    <tr>
-                        <td>{{ svc['name'] }}</td>
-                        <td>{{ svc['category'] }}</td>
-                        <td>{{ format_currency(svc['price_cents']) }}</td>
-                        <td>{{ format_currency(svc['deposit_cents']) }}</td>
-                        <td>{{ svc['duration_minutes'] }} mins</td>
-                        <td>
-                            <form class="inline-form" action="{{ url_for('update_service_pricing', service_id=svc['id']) }}" method="post" enctype="multipart/form-data">
-                                <input name="price" type="number" step="0.01" placeholder="Price" value="{{ svc['price_cents']/100 }}" required />
-                                <input name="deposit" type="number" step="0.01" placeholder="Deposit" value="{{ svc['deposit_cents']/100 }}" required />
-                                <input name="description" placeholder="Description" value="{{ svc['description'] }}" />
-                                <input name="category" placeholder="Category" value="{{ svc['category'] }}" />
-                                <input name="duration" type="number" min="15" step="15" placeholder="Total minutes" value="{{ svc['duration_minutes'] }}" />
-                                <input name="processing_minutes" type="number" min="0" step="5" placeholder="Processing" value="{{ svc['processing_minutes'] }}" />
-                                <input name="block_minutes" type="number" min="0" step="5" placeholder="Block time" value="{{ svc['block_minutes'] }}" />
-                                <label class="checkbox"><input type="checkbox" name="require_deposit" {% if svc['require_deposit'] %}checked{% endif %}/> Require deposit</label>
-                                <input name="calendar_color" type="color" value="{{ svc['calendar_color'] or '#f9b5d0' }}" />
-                                <input name="image_url" placeholder="Image URL" value="{{ svc['image_url'] }}" />
-                                <input name="image_file" type="file" accept="image/*" />
-                                <button class="btn ghost" type="submit">Save</button>
-                            </form>
-                        </td>
-                    </tr>
+                <div class="card-header"><h3>Services</h3><span class="pill subtle">{{ services|length }} live</span></div>
+                <div class="pill-row">
+                    {% for cat in categories %}
+                    <span class="pill subtle">{{ cat }}</span>
                     {% endfor %}
-                </table>
-                <form class="inline-form" action="{{ url_for('add_service') }}" method="post" enctype="multipart/form-data">
-                    <input name="name" placeholder="Name" required />
-                    <input name="description" placeholder="Description" required />
-                    <input name="category" placeholder="Category" required />
-                    <input name="price" type="number" step="0.01" placeholder="Price" required />
-                    <input name="deposit" type="number" step="0.01" placeholder="Deposit" required />
-                    <input name="duration" type="number" min="15" step="15" placeholder="Total minutes" required />
-                    <input name="processing_minutes" type="number" min="0" step="5" placeholder="Processing minutes" />
-                    <input name="block_minutes" type="number" min="0" step="5" placeholder="Block minutes" />
-                    <label class="checkbox"><input type="checkbox" name="require_deposit" checked /> Require deposit</label>
-                    <input name="calendar_color" type="color" value="#f9b5d0" />
-                    <input name="image_url" type="url" placeholder="Image URL" />
-                    <input name="image_file" type="file" accept="image/*" />
-                    <button class="btn" type="submit">Add Service</button>
-                </form>
+                </div>
+                <div class="accordion">
+                    <details open id="services-manage">
+                        <summary>View & edit services</summary>
+                        <div class="responsive-scroll">
+                            {% for svc in services %}
+                            <div class="service-admin-row">
+                                <div class="service-meta">
+                                    <div class="pill subtle">{{ svc['category'] or 'Uncategorized' }}</div>
+                                    <h4>{{ svc['name'] }}</h4>
+                                    <div class="muted small">{{ svc['duration_minutes'] }} mins · Deposit {{ format_currency(svc['deposit_cents']) }} · Total {{ format_currency(svc['price_cents']) }}</div>
+                                </div>
+                                <form class="inline-form compact" action="{{ url_for('update_service_pricing', service_id=svc['id']) }}" method="post" enctype="multipart/form-data">
+                                    <input name="price" type="number" step="0.01" placeholder="Price" value="{{ svc['price_cents']/100 }}" required />
+                                    <input name="deposit" type="number" step="0.01" placeholder="Deposit" value="{{ svc['deposit_cents']/100 }}" required />
+                                    <input name="description" placeholder="Description" value="{{ svc['description'] }}" />
+                                    <input name="category" placeholder="Category" value="{{ svc['category'] }}" />
+                                    <input name="duration" type="number" min="15" step="15" placeholder="Total minutes" value="{{ svc['duration_minutes'] }}" />
+                                    <input name="processing_minutes" type="number" min="0" step="5" placeholder="Processing" value="{{ svc['processing_minutes'] }}" />
+                                    <input name="block_minutes" type="number" min="0" step="5" placeholder="Block time" value="{{ svc['block_minutes'] }}" />
+                                    <label class="checkbox"><input type="checkbox" name="require_deposit" {% if svc['require_deposit'] %}checked{% endif %}/> Require deposit</label>
+                                    <input name="calendar_color" type="color" value="{{ svc['calendar_color'] or '#f9b5d0' }}" />
+                                    <input name="image_url" placeholder="Image URL" value="{{ svc['image_url'] }}" />
+                                    <input name="image_file" type="file" accept="image/*" />
+                                    <button class="btn ghost" type="submit">Save</button>
+                                </form>
+                                <form class="inline-form service-remove" action="{{ url_for('delete_service', service_id=svc['id']) }}" method="post">
+                                    <button class="btn danger ghost" type="submit">Remove</button>
+                                </form>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </details>
+                    <details id="services-add">
+                        <summary>Add a service</summary>
+                        <form class="inline-form compact" action="{{ url_for('add_service') }}" method="post" enctype="multipart/form-data">
+                            <input name="name" placeholder="Name" required />
+                            <input name="description" placeholder="Description" required />
+                            <input name="category" placeholder="Category" required />
+                            <input name="price" type="number" step="0.01" placeholder="Price" required />
+                            <input name="deposit" type="number" step="0.01" placeholder="Deposit" required />
+                            <input name="duration" type="number" min="15" step="15" placeholder="Total minutes" required />
+                            <input name="processing_minutes" type="number" min="0" step="5" placeholder="Processing minutes" />
+                            <input name="block_minutes" type="number" min="0" step="5" placeholder="Block minutes" />
+                            <label class="checkbox"><input type="checkbox" name="require_deposit" checked /> Require deposit</label>
+                            <input name="calendar_color" type="color" value="#f9b5d0" />
+                            <input name="image_url" type="url" placeholder="Image URL" />
+                            <input name="image_file" type="file" accept="image/*" />
+                            <button class="btn" type="submit">Add Service</button>
+                        </form>
+                    </details>
+                </div>
             </div>
 
             <div class="card" id="team">
                 <h3>Team</h3>
-                <p class="muted">Admins and employees are selectable for services. Set everyone to 8am-8pm defaults.</p>
-                <ul>
+                <p class="muted">Admins and employees are selectable for services. Everyone defaults to 8am-8pm availability.</p>
+                <ul class="tag-list">
                 {% for emp in employees %}
-                    <li>{{ emp['name'] }} — {{ emp['email'] }}</li>
+                    <li><span class="pill subtle">{{ emp['name'] }}</span> — {{ emp['email'] }}</li>
                 {% endfor %}
                 </ul>
-                <form class="inline-form" action="{{ url_for('add_employee') }}" method="post">
+                <form class="inline-form compact" action="{{ url_for('add_employee') }}" method="post">
                     <input name="name" placeholder="Name" required />
                     <input name="email" placeholder="Email" required />
                     <input name="phone" placeholder="Phone" required />
@@ -109,7 +155,7 @@
             <div class="grid" id="availability">
                 <div class="card">
                     <h3>Availability (8am–8pm)</h3>
-                    <form class="inline-form" action="{{ url_for('admin_availability') }}" method="post">
+                    <form class="inline-form compact" action="{{ url_for('admin_availability') }}" method="post">
                         <select name="employee_id">
                             {% for emp in employees %}
                             <option value="{{ emp['id'] }}">{{ emp['name'] }}</option>
@@ -131,7 +177,7 @@
                 </div>
                 <div class="card">
                     <h3>Time Off</h3>
-                    <form class="inline-form" action="{{ url_for('admin_time_off') }}" method="post">
+                    <form class="inline-form compact" action="{{ url_for('admin_time_off') }}" method="post">
                         <select name="employee_id">
                             {% for emp in employees %}
                             <option value="{{ emp['id'] }}">{{ emp['name'] }}</option>
@@ -147,9 +193,9 @@
 
             <div class="grid" id="appointments">
                 <div class="card">
-                    <h3>Recent Appointments</h3>
-                    <table class="table">
-                        <tr><th>Client</th><th>Service</th><th>Artist</th><th>When</th><th>Status</th><th>Actions</th></tr>
+                    <div class="card-header"><h3>Recent Appointments</h3><span class="pill subtle">Read-only — reschedule/cancel unavailable</span></div>
+                    <table class="table responsive">
+                        <tr><th>Client</th><th>Service</th><th>Artist</th><th>When</th><th>Status</th></tr>
                         {% for appt in appointments %}
                         <tr>
                             <td>{{ appt['client_name'] }}</td>
@@ -157,25 +203,14 @@
                             <td>{{ appt['employee_name'] }}</td>
                             <td>{{ appt['start_time']|beauty_time }}</td>
                             <td>{{ appt['status'] }}</td>
-                            <td>
-                                <form class="inline-form" action="{{ url_for('update_appointment', appointment_id=appt['id']) }}" method="post">
-                                    <input type="datetime-local" name="new_start_time" />
-                                    <select name="status">
-                                        <option value="{{ appt['status'] }}">{{ appt['status'] }}</option>
-                                        <option value="Booked">Booked</option>
-                                        <option value="Confirmed">Confirmed</option>
-                                        <option value="Cancelled">Cancelled</option>
-                                    </select>
-                                    <button class="btn ghost" type="submit">Update</button>
-                                </form>
-                            </td>
                         </tr>
                         {% endfor %}
                     </table>
+                    <p class="muted small">To change or cancel, contact the client directly; dashboard edits are disabled.</p>
                 </div>
                 <div class="card" id="gift-cards">
                     <h3>Gift Cards</h3>
-                    <table class="table">
+                    <table class="table responsive">
                         <tr><th>Code</th><th>To</th><th>Amount</th><th>Status</th></tr>
                         {% for gift in gift_cards %}
                         <tr>
@@ -187,6 +222,23 @@
                         {% endfor %}
                     </table>
                 </div>
+            </div>
+
+            <div class="card" id="clients">
+                <div class="card-header"><h3>Clients</h3><span class="pill subtle">{{ clients|length }} profiles</span></div>
+                <table class="table responsive">
+                    <tr><th>Name</th><th>Email</th><th>Phone</th><th>Notes</th><th>Profile</th></tr>
+                    {% for client in clients %}
+                    <tr>
+                        <td>{{ client['name'] }}</td>
+                        <td>{{ client['email'] }}</td>
+                        <td>{{ client['phone'] }}</td>
+                        <td class="muted small">{{ client['notes'] }}</td>
+                        <td><a class="btn ghost" href="{{ url_for('client_profile', client_id=client['id']) }}">View</a></td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                <p class="muted small">Employees only see their upcoming appointments; admins see all history.</p>
             </div>
         </div>
     </div>

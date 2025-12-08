@@ -1061,6 +1061,22 @@ def update_announcement():
     return redirect(url_for("admin"))
 
 
+@app.route("/admin/announcement", methods=["POST"])
+def update_announcement():
+    if not require_role("admin"):
+        return redirect(url_for("login"))
+    message = request.form.get("announcement", "").strip()
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO site_settings (key, value, updated_at) VALUES ('announcement', ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=CURRENT_TIMESTAMP",
+        (message,),
+    )
+    conn.commit()
+    conn.close()
+    flash("Announcement updated.", "success")
+    return redirect(url_for("admin"))
+
+
 @app.route("/admin/add_service", methods=["POST"])
 def add_service():
     if not require_role("admin"):

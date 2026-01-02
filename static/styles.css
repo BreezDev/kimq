@@ -159,7 +159,7 @@ a { color: inherit; text-decoration: none; }
 .section-subtitle { color: var(--muted); max-width: 720px; }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
-.booking-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.booking-grid { grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); align-items: start; }
 
 .floating-card {
     background: #fdfdfd;
@@ -354,12 +354,42 @@ textarea { resize: vertical; }
 .table.responsive { width: 100%; display: block; overflow-x: auto; }
 .card-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-.booking-grid { align-items: start; }
 .booking-grid .card { border: 1px solid #ececec; }
 .calendar-panel { background: #0f1115; color: #fff; padding: 12px; border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05); }
 .calendar .day { color: #111; }
 .calendar .day.selected { background: #f9b5d0; }
 .booking-grid select, .booking-grid input, .booking-grid textarea { border: 1px solid #ececec; }
+.availability-panel {
+    margin-top: 10px;
+    padding: 14px;
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #ffffff, #fbfbfb);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+    display: grid;
+    gap: 12px;
+}
+.availability-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+#availability { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.booking-notes { position: sticky; top: 16px; }
+.booking-gallery { margin-top: 14px; display: grid; gap: 10px; }
+.placeholder-frame {
+    border: 1px dashed rgba(0,0,0,0.15);
+    border-radius: 10px;
+    padding: 10px;
+    background: linear-gradient(135deg, rgba(212,175,55,0.08), rgba(0,0,0,0.01));
+    display: grid;
+    gap: 6px;
+}
+.placeholder-chip {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.08);
+    display: inline-flex;
+    width: fit-content;
+    font-size: 12px;
+    letter-spacing: 0.01em;
+}
 
 .instagram-card { background: #fff; border: 1px solid #ececec; }
 .instagram-card .img-wrap { aspect-ratio: 1/1; }
@@ -375,6 +405,9 @@ textarea { resize: vertical; }
 @media (max-width: 900px) {
     .admin-layout { grid-template-columns: 1fr; }
     .admin-sidebar { position: static; }
+    .booking-grid { grid-template-columns: 1fr; }
+    .booking-notes { position: relative; top: 0; }
+    .calendar-panel { margin-bottom: 6px; }
 }
 
 /* Reviews & Instagram */
@@ -383,3 +416,4 @@ textarea { resize: vertical; }
 .instagram-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
 .instagram-card .img-wrap { overflow: hidden; border-radius: 12px; margin-bottom: 8px; }
 .instagram-card img { width: 100%; display: block; object-fit: cover; }
+.instagram-embed { margin-top: 18px; }

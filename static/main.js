@@ -189,4 +189,32 @@ document.addEventListener('DOMContentLoaded', () => {
             adminSidebar.classList.toggle('collapsed');
         });
     }
+
+    const filterButtons = document.querySelectorAll('.filter-btn[data-filter-category]');
+    const serviceCards = document.querySelectorAll('#service-grid .service-card');
+    const emptyState = document.querySelector('#no-services');
+
+    const applyFilter = (category) => {
+        if (!serviceCards.length) return;
+        let visibleCount = 0;
+        serviceCards.forEach(card => {
+            const matches = category === 'all' || card.dataset.category === category;
+            card.style.display = matches ? '' : 'none';
+            if (matches) visibleCount += 1;
+        });
+        filterButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.filterCategory === category));
+        if (emptyState) {
+            emptyState.hidden = visibleCount !== 0;
+        }
+    };
+
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            applyFilter(btn.dataset.filterCategory);
+        });
+    });
+
+    if (filterButtons.length) {
+        applyFilter('all');
+    }
 });

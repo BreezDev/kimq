@@ -52,10 +52,14 @@
             <h2 class="section-title">Choose your glam moment</h2>
             <p class="muted">Premium artistry with plush pacing—polished, modern, and saturated in gold detail.</p>
             {% if categories %}
-            <div class="pill-row" aria-label="Service categories">
-                {% for cat in categories %}
-                <span class="pill subtle">{{ cat }}</span>
-                {% endfor %}
+            <div class="filter-bar" aria-label="Service categories">
+                <div class="filter-buttons" role="list">
+                    <button class="pill subtle filter-btn active" data-filter-category="all">All experiences</button>
+                    {% for cat in categories %}
+                    <button class="pill subtle filter-btn" data-filter-category="{{ cat }}">{{ cat }}</button>
+                    {% endfor %}
+                </div>
+                <p class="muted small">Tap to refine by category. Every service includes premium prep and touch-ups.</p>
             </div>
             {% endif %}
         </div>
@@ -64,18 +68,12 @@
             <a class="btn" href="{{ url_for('book') }}">Start a Booking</a>
         </div>
     </div>
-    <div class="grid luxe-grid">
+    <div class="grid luxe-grid" id="service-grid">
         {% for service in services %}
-        <article class="card service-card hover-lift">
+        {% set placeholder_url = "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1200&q=80&sat=-15&sig=" ~ loop.index %}
+        <article class="card service-card hover-lift" data-category="{{ service['category'] or 'Uncategorized' }}">
             <div class="service-media">
-                {% if service['image_url'] %}
-                <img class="service-img" src="{{ service['image_url'] }}" alt="{{ service['name'] }}" loading="lazy">
-                {% else %}
-                <div class="service-placeholder gradient-{{ loop.index0 % 3 }}">
-                    <span class="initials">{{ service['name'][:1] }}</span>
-                    <p>Inspiration coming soon</p>
-                </div>
-                {% endif %}
+                <img class="service-img" src="{{ service['image_url'] or placeholder_url }}" alt="{{ service['name'] }} inspiration" loading="lazy">
                 <span class="floating-pill">Deposit {{ format_currency(service['deposit_cents']) }}</span>
             </div>
             <div class="service-body">
@@ -84,7 +82,10 @@
                     <div class="price">{{ format_currency(service['price_cents']) }}</div>
                 </div>
                 <p class="muted">{{ service['description'] }}</p>
-                <div class="pill muted">{{ service['category'] }} · {{ service['duration_minutes'] }} mins</div>
+                <div class="service-meta">
+                    <span class="pill muted">{{ service['category'] or 'Uncategorized' }}</span>
+                    <span class="pill muted">{{ service['duration_minutes'] }} mins</span>
+                </div>
                 <div class="service-actions">
                     <div class="pill muted">Secure your date instantly</div>
                     <a class="btn" href="{{ url_for('book', service_id=service['id']) }}">Book + Pay Deposit</a>
@@ -93,6 +94,7 @@
         </article>
         {% endfor %}
     </div>
+    <p class="muted filter-empty" id="no-services" hidden>No services match this category yet.</p>
 </section>
 
 <section class="section shimmering">

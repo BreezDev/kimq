@@ -33,6 +33,13 @@
                     <div id="calendar" class="calendar"></div>
                     <input type="date" name="date" id="date" class="hidden" required />
                 </div>
+                <div class="availability-panel">
+                    <div class="availability-header">
+                        <h3>Available times</h3>
+                        <p class="muted small">Tap a slot to fill in your booking automatically.</p>
+                    </div>
+                    <div id="availability" class="grid"></div>
+                </div>
                 <div class="form-group">
                     <label>Preferred Time</label>
                     <input type="time" name="time" id="time" value="10:00" required />
@@ -56,9 +63,25 @@
                 <button class="btn" type="submit">Book + Pay Deposit</button>
             </form>
         </div>
-        <div class="card">
-            <h3>Availability</h3>
-            <div id="availability" class="grid"></div>
+        <div class="card booking-notes">
+            <h3>Booking notes</h3>
+            <p class="muted">Select a date to reveal openings. Choosing a time will set your preference before checkout.</p>
+            <p class="muted">If you don't see your ideal time, choose the closest option and share details in the notes field so we can adjust if possible.</p>
+            <div class="booking-gallery">
+                <div class="placeholder-frame">
+                    <div class="placeholder-chip">Image placeholder</div>
+                    <p class="muted small">Add a hero-style booking image here.</p>
+                </div>
+                <div class="placeholder-frame">
+                    <div class="placeholder-chip">Image placeholder</div>
+                    <p class="muted small">Showcase a favorite project.</p>
+                </div>
+                <div class="placeholder-frame">
+                    <div class="placeholder-chip">Image placeholder</div>
+                    <p class="muted small">Feature a behind-the-scenes shot.</p>
+                </div>
+                <p class="muted small">Place your images in <code>static/uploads</code> and swap the placeholder blocks above with <code>&lt;img src="{{ url_for('static', filename='uploads/your-file.jpg') }}" alt="..."&gt;</code>.</p>
+            </div>
         </div>
     </div>
 </section>
